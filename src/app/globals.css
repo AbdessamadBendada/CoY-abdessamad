@@ -1,0 +1,377 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-body);
+  --font-display: var(--font-heading);
+  --font-wordmark: var(--font-wordmark);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+}
+
+:root {
+  --radius: 0.75rem; /* 12px — cards */
+  --background: oklch(0.985 0.005 60);             /* #FAFAF8 warm white — Solar Vigil V2 */
+  --foreground: oklch(0.25 0.04 42);               /* #3E2A1A brun profond */
+  --card: oklch(0.985 0.005 60);
+  --card-foreground: oklch(0.25 0.04 42);
+  --popover: oklch(0.985 0.005 60);
+  --popover-foreground: oklch(0.25 0.04 42);
+  --primary: oklch(0.60 0.13 37);                  /* #D97757 terra */
+  --primary-foreground: oklch(1 0 0);               /* blanc */
+  --secondary: oklch(0.96 0.015 60);               /* #F5F0E8 crème */
+  --secondary-foreground: oklch(0.25 0.04 42);     /* #3E2A1A */
+  --muted: oklch(0.96 0 0);
+  --muted-foreground: oklch(0.55 0.025 55);        /* warm muted */
+  --accent: oklch(0.96 0.015 60);                  /* #F5F0E8 crème */
+  --accent-foreground: oklch(0.25 0.04 42);
+  --destructive: oklch(0.577 0.245 27.325);         /* #EF4444 */
+  --border: oklch(0.90 0.012 60);                  /* #E2D9D0 warm gray */
+  --input: oklch(0.90 0.012 60);
+  --ring: oklch(0.60 0.13 37);                     /* #D97757 terra focus ring */
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.985 0.005 60);
+  --sidebar-foreground: oklch(0.25 0.04 42);
+  --sidebar-primary: oklch(0.60 0.13 37);          /* #D97757 terra */
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.96 0.015 60);          /* #F5F0E8 crème */
+  --sidebar-accent-foreground: oklch(0.25 0.04 42);
+  --sidebar-border: oklch(0.90 0.012 60);          /* warm gray */
+  --sidebar-ring: oklch(0.60 0.13 37);             /* #D97757 terra */
+  --shadow-warm-card: 0 4px 24px rgba(62, 42, 26, 0.08);
+  --shadow-warm-modal: 0 20px 60px rgba(62, 42, 26, 0.16);
+  /* ── Tokens Solar Vigil manquants (landing direction artistique) */
+  --color-noir-doux: #2B2523;          /* titres landing — plus dense que brun-profond */
+  --color-sable: #E8DDD0;              /* sections alternées (§3, §8) */
+  --color-ambre-profond: #C99A30;      /* arcs radar extérieurs 52% opacity */
+  --shadow-warm-sm: 0 2px 8px rgba(62, 42, 26, 0.06);
+  --shadow-warm-lg: 0 20px 60px rgba(62, 42, 26, 0.12);
+  /* ── Typographie fluide landing */
+  --text-hero: clamp(3rem, 5vw + 1rem, 6rem);
+  --text-h2: clamp(2rem, 3vw + 0.5rem, 3.5rem);
+  --text-body: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
+  --transition-interactive: 180ms cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* ── K1 Solar Vigil — tokens complets app dashboard */
+  --color-terracotta: #D97757;
+  --color-terracotta-hover: #C4613D;
+  --color-terracotta-light: rgba(217, 119, 87, 0.10);
+  --color-ambre: #E8B84B;
+  --color-ambre-hover: #D4A030;
+  --color-ambre-light: rgba(232, 184, 75, 0.12);
+  --color-creme: #F5F0E8;
+  --color-sable-2: #DDD0BF;
+  --color-brun-terre: #3E2A1A;
+  --color-brun-muted: #7A6355;
+  --color-brun-faint: #B8A898;
+  --color-success: #5C8A3A;
+  --color-success-bg: rgba(92, 138, 58, 0.10);
+  --color-warning: #C99A30;
+  --color-warning-bg: rgba(201, 154, 48, 0.10);
+  --color-critical: #C0442A;
+  --color-critical-bg: rgba(192, 68, 42, 0.08);
+  --color-sidebar-bg: #2B2523;
+  --color-sidebar-surface: #3A2E29;
+  --color-sidebar-active: #4A3830;
+  --color-sidebar-text: #E8DDD0;
+  --color-sidebar-muted: #8A7468;
+  --color-bg: #F5F0E8;
+  --color-surface: #FAF7F2;
+  --color-surface-2: #F0EBE2;
+  --color-divider: rgba(62, 42, 26, 0.08);
+  --shadow-sm: 0 1px 2px rgba(46, 37, 35, 0.06);
+  --shadow-md: 0 4px 12px rgba(46, 37, 35, 0.09);
+  --shadow-lg: 0 12px 32px rgba(46, 37, 35, 0.13);
+}
+
+.dark {
+  --background: #1A1410;               /* Solar Vigil dark — fond principal */
+  --foreground: oklch(0.96 0.008 60);  /* #F5F0E8 crème — texte principal */
+  --card: #221C16;                     /* Solar Vigil dark — surface cards */
+  --card-foreground: oklch(0.96 0.008 60);
+  --popover: #221C16;
+  --popover-foreground: oklch(0.96 0.008 60);
+  --primary: oklch(0.60 0.13 37);      /* #D97757 terra — inchangé */
+  --primary-foreground: oklch(1 0 0);
+  --secondary: #2A1F18;               /* Solar Vigil dark — hover/surface */
+  --secondary-foreground: oklch(0.96 0.008 60);
+  --muted: #2A1F18;
+  --muted-foreground: oklch(0.65 0.03 55);
+  --accent: #2A1F18;
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.60 0.13 37);           /* #D97757 terra */
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.60 0.13 37);              /* #D97757 terra */
+}
+
+/* ─── Dashboard content — WinBack design system Solar Vigil V2 ── */
+.dashboard-content {
+  --primary: #D97757;
+  --primary-foreground: #ffffff;
+  --ring: #D97757;
+  --border: #E2D9D0;
+  --input: #E2D9D0;
+}
+
+/* Cards — ombre douce warm */
+.dashboard-content [data-slot="card"] {
+  border-color: rgba(217, 119, 87, 0.12);
+  box-shadow: var(--shadow-warm-card);
+}
+
+/* En-têtes de tableau */
+.dashboard-content table thead tr {
+  background-color: rgba(217, 119, 87, 0.03);
+}
+.dashboard-content table thead th {
+  border-bottom-color: rgba(217, 119, 87, 0.1);
+  color: #6B7280;
+}
+
+/* Headers de section h3 — accent terra gauche */
+.dashboard-content section h3 {
+  border-left: 2px solid #D97757;
+  padding-left: 0.5rem;
+  color: #3E2A1A;
+}
+
+/* ─── Auth pages — panneau gauche sombre Solar Vigil V2 ─────── */
+.auth-theme {
+  --background: #2B2523;
+  --foreground: #F5F0E8;
+  --card: rgba(255,255,255,0.03);
+  --card-foreground: #F5F0E8;
+  --popover: rgba(255,255,255,0.03);
+  --popover-foreground: #F5F0E8;
+  --primary: #D97757;
+  --primary-foreground: #ffffff;
+  --secondary: rgba(245,240,232,0.06);
+  --secondary-foreground: #F5F0E8;
+  --muted: rgba(245,240,232,0.05);
+  --muted-foreground: #C4A882;
+  --accent: rgba(217,119,87,0.1);
+  --accent-foreground: #E8B84B;
+  --destructive: oklch(0.65 0.22 25);
+  --border: rgba(245,240,232,0.1);
+  --input: rgba(245,240,232,0.1);
+  --ring: #D97757;
+  color-scheme: dark;
+}
+
+/* ─── Landing page tokens — Solar Vigil V2 (direction artistique) */
+:root {
+  --landing-bg: #FAFAF8;
+  --landing-bg-subtle: #F5F0E8;            /* crème — fond sections principales */
+  --landing-bg-sable: #E8DDD0;             /* sable — sections alternées §3, §8 */
+  --landing-primary: #2B2523;              /* noir doux — titres H1/H2 landing */
+  --landing-accent: #D97757;               /* terracotta — CTA boutons uniquement */
+  --landing-ambre: #E8B84B;                /* ambre — arcs radar intérieur */
+  --landing-ambre-profond: #C99A30;        /* ambre profond — arcs radar extérieur */
+  --landing-success: #10B981;
+  --landing-alert: #EF4444;
+  --landing-text: #2B2523;                 /* noir doux — texte corps landing */
+  --landing-text-secondary: #3E2A1A;       /* brun profond — texte secondaire */
+  --landing-muted: #6B7280;
+  --landing-subtle: #9CA3AF;
+  --landing-border: #E2D9D0;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+.support-card:hover {
+  border-color: rgba(217, 119, 87, 0.25) !important;
+  box-shadow: 0 4px 24px rgba(217, 119, 87, 0.08) !important;
+}
+
+/* ─── S2 — Dashboard inputs Solar Vigil ──────────────────────── */
+.dashboard-content input[type="text"],
+.dashboard-content input[type="email"],
+.dashboard-content input[type="number"],
+.dashboard-content input[type="tel"],
+.dashboard-content input[type="url"],
+.dashboard-content input[type="password"],
+.dashboard-content textarea,
+.dashboard-content select {
+  background: #F5F0E8;
+  border: 1px solid #E8DDD0;
+  border-radius: 0.375rem;
+  min-height: 44px;
+  color: #2B2523;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.dashboard-content input::placeholder,
+.dashboard-content textarea::placeholder {
+  color: #B8A898;
+}
+.dashboard-content input:focus,
+.dashboard-content textarea:focus,
+.dashboard-content select:focus {
+  outline: none;
+  border-color: #D97757;
+  box-shadow: 0 0 0 2px rgba(217,119,87,0.2);
+}
+
+/* S3 — Sliders Solar Vigil */
+.dashboard-content input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: #E8DDD0;
+  border-radius: 9999px;
+  outline: none;
+  cursor: pointer;
+  border: none;
+  min-height: auto;
+}
+.dashboard-content input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #D97757;
+  border: 2px solid #F5F0E8;
+  box-shadow: 0 1px 4px rgba(43,37,35,0.15);
+  cursor: pointer;
+}
+.dashboard-content input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #D97757;
+  border: 2px solid #F5F0E8;
+  box-shadow: 0 1px 4px rgba(43,37,35,0.15);
+  cursor: pointer;
+}
+.dashboard-content input[type="range"]:focus::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px rgba(217,119,87,0.25);
+}
+
+/* ─── BLOC U — Micro-interactions dashboard ──────────────────── */
+
+/* Card hover : légère élévation + ombre chaude */
+.dashboard-content .card-hover,
+.dashboard-content [data-hover="card"] {
+  transition: transform 150ms ease-out, box-shadow 150ms ease-out;
+}
+.dashboard-content .card-hover:hover,
+.dashboard-content [data-hover="card"]:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(43,37,35,0.08), 0 1px 4px rgba(43,37,35,0.04);
+}
+
+/* Scroll reveal — fade-up 24px, déclenché par JS (IntersectionObserver) */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 350ms ease-out, transform 350ms ease-out;
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Stagger pour listes de cartes */
+.reveal-stagger > *:nth-child(1) { transition-delay: 0ms; }
+.reveal-stagger > *:nth-child(2) { transition-delay: 40ms; }
+.reveal-stagger > *:nth-child(3) { transition-delay: 80ms; }
+.reveal-stagger > *:nth-child(4) { transition-delay: 120ms; }
+.reveal-stagger > *:nth-child(n+5) { transition-delay: 160ms; }
+
+/* Table rows — hover ambre-light + stagger entrance */
+@keyframes sv-row-in {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.sv-table-row {
+  animation: sv-row-in 200ms ease-out both;
+  transition: background-color 120ms ease;
+}
+.sv-table-row:hover {
+  background-color: rgba(232, 184, 75, 0.08);
+}
+
+/* Card hover lift — subtil Solar Vigil */
+[data-slot="card"] {
+  transition: transform 150ms ease, box-shadow 150ms ease;
+}
+[data-slot="card"]:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(62, 42, 26, 0.09);
+}
+
+/* FAQ chevron rotation */
+details[open] .faq-chevron {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+}

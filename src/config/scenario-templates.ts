@@ -1,0 +1,355 @@
+import { SECTOR_MODE, SECTOR_SPORT, SECTOR_DECORATION } from "@/config/sectors";
+
+export interface CoyTemplate {
+  id: string;
+  name: string;
+  description: string;
+  sectors: string[]; // [] = universel ; sinon libellés exacts Tenant.sector en DB
+  scoreMin: number;
+  scoreMax: number;
+  channel: "EMAIL" | "SMS" | null;
+  tone: string;
+  vouvoiement: boolean;
+  compensationType: string | null;
+  compensationValue: number | null;
+  compensationMaxEur: number;
+  subjectTemplate: string;
+  contentTemplate: string;
+}
+
+export const COY_SCENARIO_TEMPLATES: CoyTemplate[] = [
+  // ─── Universels ───────────────────────────────────────────────────────────
+  {
+    id: "starter-signal-ecoute",
+    name: "Premier signal — Écoute active",
+    description: "Client mécontent, 1ère alerte détectée",
+    sectors: [],
+    scoreMin: 65,
+    scoreMax: 80,
+    channel: "EMAIL",
+    tone: "empathique",
+    vouvoiement: true,
+    compensationType: "discount_percent",
+    compensationValue: 10,
+    compensationMaxEur: 50,
+    subjectTemplate: "{{prenom}}, votre avis compte pour nous",
+    contentTemplate:
+      "Bonjour {{prenom}},\n\nNous avons remarqué que votre dernière expérience avec nous n'a pas été entièrement satisfaisante, et nous tenons à vous le dire : cela nous importe vraiment.\n\nEn signe de notre engagement, nous vous offrons -10 % sur votre prochaine commande.\n\nSi vous avez un moment, nous serions ravis d'en savoir plus sur ce qui aurait pu être mieux.\n\nBien cordialement,\nL'équipe {{nom_boutique}}",
+  },
+  {
+    id: "starter-risque-critique",
+    name: "Risque critique — Urgence immédiate",
+    description: "Client sur le point de partir définitivement",
+    sectors: [],
+    scoreMin: 81,
+    scoreMax: 100,
+    channel: null,
+    tone: "empathique_urgent",
+    vouvoiement: true,
+    compensationType: "discount_percent",
+    compensationValue: 15,
+    compensationMaxEur: 50,
+    subjectTemplate: "{{prenom}}, nous ne voulons pas vous perdre",
+    contentTemplate:
+      "Bonjour {{prenom}},\n\nNous réalisons que votre expérience récente n'a pas été à la hauteur de vos attentes, et nous en sommes sincèrement désolés.\n\nVotre confiance a de la valeur pour nous. C'est pourquoi nous souhaitons vous proposer une réduction exceptionnelle de -15 % sur votre prochaine commande — parce que vous méritez mieux.\n\nDites-nous comment nous pouvons rattraper les choses. Nous sommes là pour vous.\n\nAvec toute notre considération,\nL'équipe {{nom_boutique}}",
+  },
+  {
+    id: "starter-inactif",
+    name: "Client inactif — Réengagement doux",
+    description: "Pas d'achat depuis longtemps",
+    sectors: [],
+    scoreMin: 50,
+    scoreMax: 70,
+    channel: "EMAIL",
+    tone: "empathique",
+    vouvoiement: true,
+    compensationType: "free_shipping",
+    compensationValue: null,
+    compensationMaxEur: 30,
+    subjectTemplate: "Vous nous manquez, {{prenom}}",
+    contentTemplate:
+      "Bonjour {{prenom}},\n\nCela fait un moment que nous n'avons pas eu le plaisir de vous voir, et nous voulions prendre de vos nouvelles.\n\nPour vous souhaiter la bienvenue à nouveau, nous vous offrons la livraison gratuite sur votre prochaine commande.\n\nNous espérons vous retrouver bientôt.\n\nBien cordialement,\nL'équipe {{nom_boutique}}",
+  },
+
+  // ─── Mode ─────────────────────────────────────────────────────────────────
+  {
+    id: "mode-taille-non-conforme",
+    name: "Taille non conforme — Échange facilité",
+    description: "Client signale une taille ne correspondant pas au guide",
+    sectors: [SECTOR_MODE],
+    scoreMin: 60,
+    scoreMax: 79,
+    channel: "EMAIL",
+    tone: "empathique",
+    vouvoiement: true,
+    compensationType: "discount_percent",
+    compensationValue: 10,
+    compensationMaxEur: 50,
+    subjectTemplate: "{{prenom}}, trouvons ensemble la bonne taille",
+    contentTemplate:
+      "Bonjour {{prenom}},\n\nNous avons vu que la taille reçue ne correspondait pas à vos attentes, et nous en sommes désolés — le guide des tailles n'est jamais une science exacte.\n\nNous vous proposons un échange gratuit vers la taille adaptée, ainsi que -10 % sur votre prochaine commande pour votre patience.\n\nDites-nous simplement la taille que vous souhaitez recevoir, nous nous occupons du reste.\n\nBien cordialement,\nL'équipe {{nom_boutique}}",
+  },
+  {
+    id: "mode-qualite-decue",
+    name: "Qualité décevante — Maintien confiance",
+    description: "Matière ou finition perçue en dessous des attentes",
+    sectors: [SECTOR_MODE],
+    scoreMin: 60,
+    scoreMax: 79,
+    channel: "EMAIL",
+    tone: "empathique",
+    vouvoiement: true,
+    compensationType: "free_shipping",
+    compensationValue: null,
+    compensationMaxEur: 30,
+    subjectTemplate: "{{prenom}}, votre retour sur la qualité nous est précieux",
+    contentTemplate:
+      "Bonjour {{prenom}},\n\nNous avons appris que la pièce reçue ne correspondait pas tout à fait à ce que vous attendiez en matière et en finition, et nous vous remercions de nous en avoir informés.\n\nVotre satisfaction compte plus qu'une vente : nous vous offrons la livraison gratuite sur votre prochaine commande pour vous donner une nouvelle occasion de nous faire confiance.\n\nN'hésitez pas à nous préciser ce qui vous a déçu — cela nous aide à mieux sélectionner nos pièces.\n\nBien cordialement,\nL'équipe {{nom_boutique}}",
+  },
+  {
+    id: "mode-silence-post-retour",
+    name: "Silence post-retour — Relance rassurante",
+    description: "Retour effectué sans nouvelle interaction depuis",
+    sectors: [SECTOR_MODE],
+    scoreMin: 80,
+    scoreMax: 89,
+    channel: "EMAIL",
+    tone: "empathique_urgent",
+    vouvoiement: true,
+    compensationType: "discount_percent",
+    compensationValue: 15,
+    compensationMaxEur: 75,
+    subjectTemplate: "{{prenom}}, où en est votre retour ?",
+    contentTemplate:
+      "Bonjour {{prenom}},\n\nNous avons bien reçu votre retour, mais nous n'avons pas eu l'occasion d'échanger avec vous depuis — et nous ne voulons pas que ce silence vous laisse sans réponse.\n\nVotre remboursement ou échange est en cours de traitement prioritaire. Pour nous excuser de ce délai, nous vous offrons -15 % sur votre prochaine commande.\n\nSi vous avez une question sur votre dossier, répondez directement à cet email — nous vous répondons en priorité.\n\nBien cordialement,\nL'équipe {{nom_boutique}}",
+  },
+  {
+    id: "mode-risque-critique",
+    name: "Risque critique Mode — SMS urgence",
+    description: "Client sur le point de partir définitivement, verticale Mode",
+    sectors: [SECTOR_MODE],
+    scoreMin: 90,
+    scoreMax: 100,
+    channel: "SMS",
+    tone: "empathique_urgent",
+    vouvoiement: true,
+    compensationType: "discount_percent",
+    compensationValue: 20,
+    compensationMaxEur: 75,
+    subjectTemplate: "{{prenom}}, ne partez pas comme ça",
+    contentTemplate:
+      "Bonjour {{prenom}}, nous sommes vraiment désolés pour votre expérience récente et nous aimerions arranger les choses. -20% sur votre prochaine commande en attendant votre retour. L'équipe {{nom_boutique}}",
+  },
+
+  // ─── Sport & Outdoor ──────────────────────────────────────────────────────
+  {
+    id: "sport-retard-livraison",
+    name: "Retard livraison — Avant course",
+    description: "Livraison tardive signalée, client avant un événement sportif",
+    sectors: [SECTOR_SPORT],
+    scoreMin: 70,
+    scoreMax: 100,
+    channel: "EMAIL",
+    tone: "empathique_urgent",
+    vouvoiement: true,
+    compensationType: "discount_percent",
+    compensationValue: 10,
+    compensationMaxEur: 75,
+    subjectTemplate: "{{prenom}}, nous sommes désolés pour le retard de votre commande",
+    contentTemplate:
+      "Bonjour {{prenom}},\n\nNous avons été informés du retard de votre commande, et nous en sommes sincèrement désolés — surtout si vous en aviez besoin pour un événement à venir.\n\nNous faisons le nécessaire pour accélérer la livraison. En attendant, nous vous offrons -10 % sur votre prochaine commande en guise de compensation.\n\nSi vous avez besoin d'une solution urgente, contactez-nous directement et nous ferons tout notre possible.\n\nBien cordialement,\nL'équipe {{nom_boutique}}",
+  },
+  {
+    id: "sport-defaut-saison",
+    name: "Défaut produit — Récupération saison",
+    description: "Retour ou défaut signalé en pic de saison",
+    sectors: [SECTOR_SPORT],
+    scoreMin: 80,
+    scoreMax: 100,
+    channel: "EMAIL",
+    tone: "empathique_urgent",
+    vouvoiement: true,
+    compensationType: "discount_fixed",
+    compensationValue: 20,
+    compensationMaxEur: 75,
+    subjectTemplate: "{{prenom}}, votre équipement doit être irréprochable",
+    contentTemplate:
+      "Bonjour {{prenom}},\n\nNous avons bien reçu votre signalement concernant votre commande, et nous vous présentons nos sincères excuses pour ce désagrément en pleine saison.\n\nNous procédons à un échange ou remboursement immédiat, et nous vous offrons 20 € de remise sur votre prochain achat pour vous remercier de votre compréhension.\n\nVotre satisfaction est notre priorité — nous allons régler cela au plus vite.\n\nBien cordialement,\nL'équipe {{nom_boutique}}",
+  },
+
+  // ─── Décoration ───────────────────────────────────────────────────────────
+  {
+    id: "deco-colis-abime",
+    name: "Colis abîmé — Réparation immédiate",
+    description: "Article reçu endommagé signalé",
+    sectors: [SECTOR_DECORATION],
+    scoreMin: 70,
+    scoreMax: 89,
+    channel: "EMAIL",
+    tone: "empathique_urgent",
+    vouvoiement: true,
+    compensationType: "discount_percent",
+    compensationValue: 10,
+    compensationMaxEur: 75,
+    subjectTemplate: "{{prenom}}, ce n'est pas acceptable — nous allons arranger ça",
+    contentTemplate:
+      "Bonjour {{prenom}},\n\nRecevoir une pièce endommagée est une expérience que nous ne souhaitons à personne, et encore moins à vous. Nous en sommes vraiment désolés.\n\nNous vous proposons immédiatement un renvoi sans frais, ainsi qu'une réduction de -10 % sur votre prochaine commande.\n\nVous n'avez aucune démarche à faire — nous prenons tout en charge. Pouvez-vous simplement confirmer votre adresse ?\n\nBien cordialement,\nL'équipe {{nom_boutique}}",
+  },
+  {
+    id: "deco-retard-livraison",
+    name: "Retard livraison — Grande pièce",
+    description: "Livraison tardive d'une pièce volumineuse ou sur commande",
+    sectors: [SECTOR_DECORATION],
+    scoreMin: 60,
+    scoreMax: 79,
+    channel: "EMAIL",
+    tone: "empathique",
+    vouvoiement: true,
+    compensationType: "free_shipping",
+    compensationValue: null,
+    compensationMaxEur: 30,
+    subjectTemplate: "{{prenom}}, un point sur votre livraison",
+    contentTemplate:
+      "Bonjour {{prenom}},\n\nNous savons que l'attente est particulièrement longue pour une pièce comme la vôtre, et nous comprenons votre impatience.\n\nPour nous excuser de ce délai, nous vous offrons la livraison gratuite sur votre prochaine commande.\n\nNous suivons votre commande de près et reviendrons vers vous dès que possible avec une date précise.\n\nBien cordialement,\nL'équipe {{nom_boutique}}",
+  },
+  {
+    id: "deco-silence-post-reclamation",
+    name: "Silence post-réclamation — Relance prioritaire",
+    description: "Réclamation ouverte sans nouvelle interaction depuis",
+    sectors: [SECTOR_DECORATION],
+    scoreMin: 80,
+    scoreMax: 89,
+    channel: "EMAIL",
+    tone: "empathique_urgent",
+    vouvoiement: true,
+    compensationType: "discount_percent",
+    compensationValue: 15,
+    compensationMaxEur: 75,
+    subjectTemplate: "{{prenom}}, votre dossier n'est pas oublié",
+    contentTemplate:
+      "Bonjour {{prenom}},\n\nNous avons bien votre réclamation, mais nous réalisons ne pas vous avoir donné de nouvelles depuis — ce silence n'est pas acceptable de notre part.\n\nVotre dossier est désormais traité en priorité. Pour nous excuser de ce délai, nous vous offrons -15 % sur votre prochaine commande.\n\nRépondez directement à cet email pour toute question — nous vous répondons en priorité.\n\nBien cordialement,\nL'équipe {{nom_boutique}}",
+  },
+  {
+    id: "deco-montage-difficile",
+    name: "Montage difficile — Accompagnement",
+    description: "Difficulté de montage ou assemblage signalée",
+    sectors: [SECTOR_DECORATION],
+    scoreMin: 60,
+    scoreMax: 79,
+    channel: "EMAIL",
+    tone: "empathique",
+    vouvoiement: true,
+    compensationType: "discount_fixed",
+    compensationValue: 20,
+    compensationMaxEur: 75,
+    subjectTemplate: "{{prenom}}, on vous aide à finaliser le montage",
+    contentTemplate:
+      "Bonjour {{prenom}},\n\nNous avons vu que le montage de votre pièce ne s'est pas déroulé aussi simplement que prévu, et nous sommes désolés pour ce désagrément.\n\nNotre équipe peut vous envoyer une notice détaillée ou un tutoriel vidéo pas à pas pour vous accompagner pas à pas jusqu'au bout.\n\nDites-nous où vous bloquez précisément — nous trouverons une solution ensemble, et vous offrons 20 € sur votre prochaine commande pour ce contretemps.\n\nBien cordialement,\nL'équipe {{nom_boutique}}",
+  },
+
+  // ─── Preuve sociale & ancrage prix (social_proof, ancrage_prix) ────────────
+  {
+    id: "croissance-preuve-sociale",
+    name: "Preuve sociale — Retour clients similaires",
+    description: "Témoignage clients similaires après incident",
+    sectors: [],
+    scoreMin: 65,
+    scoreMax: 85,
+    channel: "EMAIL",
+    tone: "empathique",
+    vouvoiement: true,
+    compensationType: "discount_percent",
+    compensationValue: 10,
+    compensationMaxEur: 50,
+    subjectTemplate: "{{prenom}}, vous n'êtes pas seul(e) dans cette situation",
+    contentTemplate:
+      "Bonjour {{prenom}},\n\nNous avons accompagné plus de 2 000 boutiques comme la vôtre à résoudre des situations similaires à celle que vous traversez. Dans la grande majorité des cas, quelques échanges ont suffi à rétablir une relation de confiance durable.\n\nVotre satisfaction compte autant pour nous que pour les clients qui nous font confiance depuis des années. C'est pourquoi nous souhaitons vous offrir -10 % sur votre prochaine commande en signe de notre engagement.\n\nDites-nous ce que nous pouvons faire pour vous — nous sommes là.\n\nBien cordialement,\nL'équipe {{nom_boutique}}",
+  },
+  {
+    id: "croissance-ancrage-valeur",
+    name: "Ancrage valeur — Fidélité chiffrée",
+    description: "Mise en valeur de la fidélité client avec ancrage prix",
+    sectors: [],
+    scoreMin: 70,
+    scoreMax: 90,
+    channel: "EMAIL",
+    tone: "direct",
+    vouvoiement: true,
+    compensationType: "discount_percent",
+    compensationValue: 15,
+    compensationMaxEur: 75,
+    subjectTemplate: "{{prenom}}, votre fidélité a une vraie valeur pour nous",
+    contentTemplate:
+      "Bonjour {{prenom}},\n\nEn tant que client fidèle, vous avez économisé en moyenne 127 € grâce à vos achats chez {{nom_boutique}} — et nous voulons que cette relation continue.\n\nPour vous remercier de votre confiance et vous inviter à rester avec nous, nous vous offrons exceptionnellement -15 % sur votre prochaine commande (valeur habituelle : 0 %). C'est notre façon de mettre votre fidélité à sa juste valeur.\n\nVotre prochaine commande mérite cette reconnaissance.\n\nBien cordialement,\nL'équipe {{nom_boutique}}",
+  },
+  {
+    id: "sport-programme-fidelite",
+    name: "Programme fidélité — Préparation saison",
+    description: "Programme de fidélité saison pour athlète récurrent",
+    sectors: [SECTOR_SPORT],
+    scoreMin: 55,
+    scoreMax: 75,
+    channel: "EMAIL",
+    tone: "direct",
+    vouvoiement: true,
+    compensationType: "discount_percent",
+    compensationValue: 10,
+    compensationMaxEur: 75,
+    subjectTemplate: "{{prenom}}, préparez votre prochaine saison avec nous",
+    contentTemplate:
+      "Bonjour {{prenom}},\n\nDes centaines d'athlètes qui s'équipent chez {{nom_boutique}} ont déjà planifié leur prochaine saison — et ils ont en commun d'avoir anticipé leurs équipements avant les pics de demande.\n\nParce que vous faites partie de notre communauté sportive, nous souhaitons vous réserver en priorité -10 % sur votre prochaine commande de préparation de saison.\n\nDites-nous votre objectif pour la prochaine saison — nous avons les équipements qui correspondent.\n\nBien cordialement,\nL'équipe {{nom_boutique}}",
+  },
+
+  // ─── Rareté & personnalisation (rarete, personnalisation_ton) ─────────────
+  {
+    id: "expert-rarete-offre-limitee",
+    name: "Rareté — Offre 72h exclusive",
+    description: "Offre 72h exclusive pour fort risque de départ définitif",
+    sectors: [],
+    scoreMin: 80,
+    scoreMax: 100,
+    channel: null,
+    tone: "direct_urgent",
+    vouvoiement: true,
+    compensationType: "discount_percent",
+    compensationValue: 20,
+    compensationMaxEur: 100,
+    subjectTemplate: "{{prenom}}, cette offre est réservée pour vous — expire dans 72h",
+    contentTemplate:
+      "Bonjour {{prenom}},\n\nNous avons mis de côté une offre exceptionnelle exclusivement pour vous : -20 % sur votre prochaine commande. Cette réduction n'est disponible que pour 72 heures et ne sera pas renouvelée.\n\nNous savons que votre dernière expérience n'a pas été à la hauteur de vos attentes. Nous ne demandons pas une seconde chance — nous nous engageons à mériter votre confiance, ou à vous rembourser intégralement (garantie 30 jours).\n\nCette offre expire dans 72 heures. Après cette date, elle sera proposée à un autre client.\n\nAvec toute notre considération,\nL'équipe {{nom_boutique}}",
+  },
+  {
+    id: "expert-personnalisation-ultime",
+    name: "Sur mesure — Réponse personnalisée",
+    description: "Réponse personnalisée client VIP déçu, relation longue durée",
+    sectors: [],
+    scoreMin: 75,
+    scoreMax: 100,
+    channel: "EMAIL",
+    tone: "empathique",
+    vouvoiement: true,
+    compensationType: "discount_percent",
+    compensationValue: 15,
+    compensationMaxEur: 75,
+    subjectTemplate: "{{prenom}}, une réponse personnelle de notre équipe",
+    contentTemplate:
+      "Bonjour {{prenom}},\n\nJe tenais à vous écrire personnellement, en dehors de nos communications habituelles. Vous êtes l'un de nos clients les plus importants, et ce qui s'est passé récemment ne reflète pas la qualité de service que vous méritez.\n\nVoici ce que nous proposons spécifiquement pour votre situation : -15 % sur votre prochaine commande, une priorité absolue sur le traitement de votre dossier, et un suivi direct avec notre équipe.\n\nVotre satisfaction personnelle est notre priorité — pas une statistique. Répondez à cet email et nous nous engageons à vous répondre sous 2 heures.\n\nAvec toute notre considération,\nL'équipe {{nom_boutique}}",
+  },
+  {
+    id: "sport-defi-personnel",
+    name: "Défi personnel — Reprise sur mesure",
+    description: "Défi personnel sur mesure pour athlète inactif depuis une saison",
+    sectors: [SECTOR_SPORT],
+    scoreMin: 65,
+    scoreMax: 85,
+    channel: "EMAIL",
+    tone: "direct_urgent",
+    vouvoiement: true,
+    compensationType: "discount_fixed",
+    compensationValue: 20,
+    compensationMaxEur: 100,
+    subjectTemplate: "{{prenom}}, votre programme de reprise personnalisé",
+    contentTemplate:
+      "Bonjour {{prenom}},\n\nNous avons préparé quelque chose spécialement pour vous. En analysant votre historique d'achat et votre discipline sportive, notre équipe a identifié un programme de reprise adapté à votre profil exact.\n\nPour lancer ce défi personnel avec vous, nous vous offrons 20 € de remise sur les équipements recommandés — mais cette offre est limitée à 48 heures pour garder la dynamique du défi.\n\nÊtes-vous prêt(e) à reprendre ? Votre programme personnalisé vous attend.\n\nBien cordialement,\nL'équipe {{nom_boutique}}",
+  },
+];

@@ -1,0 +1,639 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================
+// TENANTS (PME clientes de WinBack)
+// ============================================
+
+model Tenant {
+  id              String         @id @default(cuid())
+  name            String
+  slug            String         @unique
+  email           String         @unique
+  phone           String?
+  siret           String?
+  website         String?
+  plan            Plan           @default(COY)
+  status          TenantStatus   @default(TRIAL)
+  trialStartedAt  DateTime?
+  trialEndsAt     DateTime?
+  trialExtended   Boolean        @default(false)
+  stripeCustomerId    String?    @unique
+  stripeSubscriptionId String?   @unique
+  billingCycle    BillingCycle   @default(MONTHLY)
+  onboardingStep  Int            @default(0)
+  onboardingCompletedAt DateTime?
+  dpaSignedAt     DateTime?
+  gdprConsentAt   DateTime?
+  sector          String?
+  settings        Json?
+  setupFeeCharged Boolean        @default(false)
+  setupFeeWaived          Boolean   @default(false)
+  guaranteeExtendedUntil  DateTime?
+  guaranteeExtensionCount Int       @default(0)
+  lastBillingEventAt      DateTime? // watermark anti-désordre webhooks Stripe — nullable, jamais backfillé (guard toujours OR lastBillingEventAt:null)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  users           User[]
+  integrations    Integration[]
+  customers       Customer[]
+  actions         WinbackAction[]
+  scenarios       WinbackScenario[]
+  quotaUsages     QuotaUsage[]
+  auditLogs       AuditLog[]
+  invoices        Invoice[]
+  betaMetrics     BetaMetrics?
+
+  @@map("tenants")
+}
+
+enum Plan {
+  ESSENTIEL  // @deprecated 2026-06-09 — palier supprimé, conservé pour compatibilité données existantes
+  STARTER    // @deprecated 2026-09-05 — palier unique CoY, conservé pour compatibilité données existantes
+  CROISSANCE // @deprecated 2026-09-05 — idem
+  EXPERT     // @deprecated 2026-09-05 — idem
+  COY
+}
+
+enum TenantStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  SUSPENDED
+}
+
+enum BillingCycle {
+  MONTHLY
+  YEARLY
+}
+
+// Dédup non-destructive des webhooks Stripe — processedAt marqué uniquement en fin de
+// traitement réussi ; la ligne est supprimée en cas d'échec pour laisser Stripe rejouer.
+model StripeWebhookEvent {
+  id          String    @id // event.id Stripe (evt_...)
+  receivedAt  DateTime  @default(now())
+  processedAt DateTime?
+
+  @@map("stripe_webhook_events")
+}
+
+// ============================================
+// USERS
+// ============================================
+
+model User {
+  id              String    @id @default(cuid())
+  tenantId        String
+  authUserId      String    @unique
+  email           String
+  firstName       String?
+  lastName        String?
+  role            UserRole  @default(MEMBER)
+  lastLoginAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@index([authUserId])
+  @@map("users")
+}
+
+enum UserRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+// ============================================
+// INTEGRATIONS
+// ============================================
+
+model Integration {
+  id              String            @id @default(cuid())
+  tenantId        String
+  type            IntegrationType
+  status          IntegrationStatus @default(PENDING)
+  config          Json?
+  lastSyncAt      DateTime?
+  lastErrorAt     DateTime?
+  lastError       String?
+  syncIntervalMs  Int?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  tenant          Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customers       Customer[]
+
+  @@unique([tenantId, type])
+  @@index([tenantId])
+  @@map("integrations")
+}
+
+enum IntegrationType {
+  GORGIAS
+  SHOPIFY
+  PRESTASHOP
+  WOOCOMMERCE
+  CRISP
+}
+
+enum IntegrationStatus {
+  PENDING
+  ACTIVE
+  ERROR
+  DISCONNECTED
+}
+
+// ============================================
+// CUSTOMERS (clients finaux des PME)
+// ============================================
+
+model Customer {
+  id              String          @id @default(cuid())
+  tenantId        String
+  integrationId   String?
+  externalId      String?
+  email           String
+  firstName       String?
+  lastName        String?
+  phone           String?
+  totalOrders     Int             @default(0)
+  totalSpent      Decimal         @default(0) @db.Decimal(10, 2)
+  lastOrderAt     DateTime?
+  averageBasket   Decimal         @default(0) @db.Decimal(10, 2)
+  ltv             Decimal         @default(0) @db.Decimal(10, 2)
+
+  churnScore      Int?
+  churnRisk       ChurnRisk?
+  lastScoredAt    DateTime?
+  scoringDetails  Json?
+
+  cooldownUntil   DateTime?
+  lastActionAt    DateTime?
+  recoveredAt     DateTime?
+  optedOutAt      DateTime?
+  optOutToken     String?         @unique
+
+  tags            String[]        @default([])
+  metadata        Json?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  tenant          Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  integration     Integration?    @relation(fields: [integrationId], references: [id], onDelete: SetNull)
+  conversations   Conversation[]
+  actions         WinbackAction[]
+  csatResponses   CsatResponse[]
+  orders          Order[]
+
+  @@unique([tenantId, email])
+  @@unique([tenantId, externalId])
+  @@index([tenantId])
+  @@index([tenantId, churnScore])
+  @@index([tenantId, churnRisk])
+  @@index([cooldownUntil])
+  @@map("customers")
+}
+
+enum ChurnRisk {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  SHIPPED
+  DELIVERED
+  RETURNED
+  REFUNDED
+  CANCELLED
+}
+
+// ============================================
+// ORDERS (commandes individuelles)
+// ============================================
+
+model Order {
+  id              String          @id @default(cuid())
+  tenantId        String
+  customerId      String
+  externalId      String?
+  source          IntegrationType
+  status          OrderStatus     @default(CONFIRMED)
+  amount          Decimal         @db.Decimal(10, 2)
+  currency        String          @default("EUR")
+  isReturn        Boolean         @default(false)
+  orderedAt       DateTime
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  customer        Customer        @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, externalId, source])
+  @@index([tenantId])
+  @@index([customerId])
+  @@index([customerId, orderedAt])
+  @@index([tenantId, orderedAt])
+  @@map("orders")
+}
+
+// ============================================
+// CONVERSATIONS
+// ============================================
+
+model Conversation {
+  id              String             @id @default(cuid())
+  tenantId        String
+  customerId      String
+  externalId      String?
+  source          ConversationSource
+  subject         String?
+  status          ConversationStatus @default(OPEN)
+
+  sentimentScore  Decimal?           @db.Decimal(3, 2)
+  sentimentLabel  SentimentLabel?
+  insatisfactionDetected Boolean     @default(false)
+  analysisDetails Json?
+  analyzedAt      DateTime?
+
+  closedAt        DateTime?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  customer        Customer           @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  messages        Message[]
+
+  @@index([tenantId])
+  @@index([customerId])
+  @@index([tenantId, insatisfactionDetected])
+  @@map("conversations")
+}
+
+enum ConversationSource {
+  GORGIAS
+  MANUAL
+  IMPORT
+  CRISP
+}
+
+enum ConversationStatus {
+  OPEN
+  CLOSED
+  MERGED
+}
+
+enum SentimentLabel {
+  VERY_NEGATIVE
+  NEGATIVE
+  NEUTRAL
+  POSITIVE
+  VERY_POSITIVE
+}
+
+// ============================================
+// MESSAGES
+// ============================================
+
+model Message {
+  id              String        @id @default(cuid())
+  conversationId  String
+  externalId      String?
+  sender          MessageSender
+  content         String
+  sentimentScore  Decimal?      @db.Decimal(3, 2)
+  createdAt       DateTime      @default(now())
+
+  conversation    Conversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@map("messages")
+}
+
+enum MessageSender {
+  CUSTOMER
+  AGENT
+  SYSTEM
+}
+
+// ============================================
+// WINBACK ACTIONS
+// ============================================
+
+model WinbackAction {
+  id              String        @id @default(cuid())
+  tenantId        String
+  customerId      String
+  type            ActionType
+  status          ActionStatus  @default(PENDING)
+
+  subject         String?
+  content         String
+  channel         ActionChannel
+
+  triggers        String[]      @default([])
+  promoCode       String?
+  promoValue      Decimal?      @db.Decimal(10, 2)
+  promoType       PromoType?
+
+  churnScoreAtCreation Int?
+
+  sentAt          DateTime?
+  deliveredAt     DateTime?
+  openedAt        DateTime?
+  clickedAt       DateTime?
+  convertedAt     DateTime?
+  convertedValue  Decimal?      @db.Decimal(10, 2)
+  failedAt        DateTime?
+  failureReason   String?
+
+  aiModelUsed     String?
+  aiPromptVersion String?
+  aiDecisionLog   Json?
+
+  psychologicalTrigger  String?   // trigger principal utilisé (ex: "loss_aversion")
+  persuasionScore       Int?      // score de persuasion 0-100
+  moderationLog         Json?     // rapport du Modération Agent (corrections RGPD)
+  brevoMessageId        String?   // ID message Brevo — utilisé pour tracking OPENED/CLICKED
+
+  scheduledAt     DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  scenarioId      String?
+  scenario        WinbackScenario? @relation(fields: [scenarioId], references: [id], onDelete: SetNull)
+
+  tenant          Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer        Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([customerId])
+  @@index([scheduledAt])
+  @@index([tenantId, createdAt])
+  @@index([scenarioId])
+  @@map("winback_actions")
+}
+
+enum ActionType {
+  AUTOMATED
+  MANUAL
+  ESCALATION
+}
+
+enum ActionChannel {
+  EMAIL
+  SMS
+}
+
+enum ActionStatus {
+  PENDING
+  SENDING           // état transitoire TOCTOU-safe — posé avant l'envoi, levé après
+  SCHEDULED
+  SENT
+  DELIVERED
+  OPENED
+  CLICKED
+  CONVERTED
+  FAILED
+  CANCELLED
+  NEEDS_REVIEW  // généré mais non envoyé — anomalie Modération Agent (< 1% des cas)
+}
+
+enum PromoType {
+  PERCENTAGE
+  FIXED
+  FREE_SHIPPING
+}
+
+// ============================================
+// WINBACK SCENARIOS
+// ============================================
+
+model WinbackScenario {
+  id                 String         @id @default(cuid())
+  tenantId           String
+  name               String         // display only — never injected into AI prompts
+  isActive           Boolean        @default(true)
+  priority           Int            @default(0)
+  scoreMin           Int            @default(65)
+  scoreMax           Int            @default(100)
+  channel            ActionChannel?
+  tone               String         @default("empathique")
+  vouvoiement        Boolean        @default(true)
+  autoSendMode       String         @default("manual")
+  compensationType   String?
+  compensationValue  Decimal?       @db.Decimal(10, 2)
+  compensationMaxEur Decimal        @default(50) @db.Decimal(10, 2)
+  triggersConfig     Json?
+  subjectTemplate    String?
+  contentTemplate    String?
+  usageCount         Int            @default(0)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  tenant             Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  actions            WinbackAction[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@index([tenantId, isActive])
+  @@index([tenantId, priority])
+  @@map("winback_scenarios")
+}
+
+// ============================================
+// CSAT RESPONSES
+// ============================================
+
+model CsatResponse {
+  id              String    @id @default(cuid())
+  tenantId        String
+  customerId      String
+  actionId        String?
+  score           Int
+  comment         String?
+  isWeakSignal    Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+
+  customer        Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([customerId])
+  @@map("csat_responses")
+}
+
+// ============================================
+// QUOTA USAGE
+// ============================================
+
+model QuotaUsage {
+  id                String    @id @default(cuid())
+  tenantId          String
+  period            String
+  customersCount    Int       @default(0)
+  actionsCount      Int       @default(0)
+  emailsCount       Int       @default(0)
+  smsCount          Int       @default(0)
+  integrationsCount Int       @default(0)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  tenant            Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, period])
+  @@index([tenantId])
+  @@map("quota_usages")
+}
+
+// ============================================
+// INVOICES
+// ============================================
+
+model Invoice {
+  id              String        @id @default(cuid())
+  tenantId        String
+  stripeInvoiceId String?       @unique
+  number          String        @unique
+  status          InvoiceStatus @default(DRAFT)
+  amountHt        Decimal       @db.Decimal(10, 2)
+  amountTva       Decimal       @db.Decimal(10, 2)
+  amountTtc       Decimal       @db.Decimal(10, 2)
+  tvaRate         Decimal       @default(20.00) @db.Decimal(5, 2)
+  currency        String        @default("EUR")
+  periodStart     DateTime
+  periodEnd       DateTime
+  pdfUrl          String?
+  facturxXml      String?
+  paidAt          DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  tenant          Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, createdAt])
+  @@map("invoices")
+}
+
+enum InvoiceStatus {
+  DRAFT
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+// ============================================
+// SECURITY EVENTS
+// ============================================
+
+enum SecurityEventType {
+  AUTH_FAILURE
+  HMAC_FAILURE
+  RATE_LIMIT_EXCEEDED
+  UNAUTHORIZED_ROLE
+  SUSPICIOUS_REQUEST
+  COMPLIANCE_FOOTER_INJECTED  // injection déterministe pied de conformité RGPD/AI Act
+}
+
+enum SecuritySeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model SecurityEvent {
+  id          String            @id @default(cuid())
+  tenantId    String?
+  event       SecurityEventType
+  severity    SecuritySeverity  @default(MEDIUM)
+  ipAddress   String?
+  userAgent   String?
+  path        String?
+  details     Json?
+  createdAt   DateTime          @default(now())
+
+  @@index([event])
+  @@index([tenantId])
+  @@index([severity, createdAt])
+  @@index([createdAt])
+  @@map("security_events")
+}
+
+// ============================================
+// AUDIT LOGS
+// ============================================
+
+model AuditLog {
+  id              String    @id @default(cuid())
+  tenantId        String?
+  userId          String?
+  action          String
+  entityType      String?
+  entityId        String?
+  details         Json?
+  ipAddress       String?
+  userAgent       String?
+  createdAt       DateTime  @default(now())
+
+  tenant          Tenant?   @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([tenantId, action])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ============================================
+// BETA METRICS (tracking case study dès J1)
+// ============================================
+
+model BetaMetrics {
+  id                      String    @id @default(cuid())
+  tenantId                String    @unique
+
+  // Baseline "avant" — rempli à la sync initiale
+  baselineDate            DateTime
+  baselineTotalCustomers  Int       @default(0)
+  baselineChurnRate       Float?
+  baselineLtvAvg          Float?
+  baselineAov             Float?
+  baselineRepeatRate      Float?
+
+  // Métriques cumulées "après" — incrémentées automatiquement
+  customersFlaggedAtRisk  Int       @default(0)
+  actionsSent             Int       @default(0)
+  actionsOpened           Int       @default(0)
+  actionsClicked          Int       @default(0)
+  customersRecovered      Int       @default(0)
+  revenueRecovered        Float     @default(0)
+
+  // Meta case study
+  vertical                String?
+  brandName               String?
+  consentCaseStudy        Boolean   @default(false)
+
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  tenant                  Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("beta_metrics")
+}

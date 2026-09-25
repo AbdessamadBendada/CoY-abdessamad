@@ -1,0 +1,5 @@
+-- AlterEnum
+ALTER TYPE "ActionStatus" ADD VALUE 'SENDING';
+
+-- AlterEnum
+ALTER TYPE "SecurityEventType" ADD VALUE 'COMPLIANCE_FOOTER_INJECTED';

@@ -1,0 +1,27 @@
+# Environment
+.env
+.env.local
+.env.production.local
+!.env.example
+
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+
+# Vercel
+.vercel/
+
+# Trigger.dev
+.trigger/
+
+# TypeScript
+*.tsbuildinfo
+
+# OS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
