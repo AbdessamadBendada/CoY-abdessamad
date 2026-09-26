@@ -1,6 +1,6 @@
 import { timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { runSyncWooCommerce } from "@/lib/jobs/sync-woocommerce";
+import { runSyncWooCommerce } from "@/features/integrations/woocommerce/sync";
 
 function authenticateCron(request: NextRequest): boolean {
   const auth = request.headers.get("authorization");

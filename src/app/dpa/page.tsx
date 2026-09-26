@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 
-import { requireAuth } from "@/lib/auth";
+import { requireAuth } from "@/features/auth/server";
 import { redirect } from "next/navigation";
 import { DpaForm } from "./dpa-form";
 

@@ -1,5 +1,5 @@
 import { schedules } from "@trigger.dev/sdk";
-import { runSyncCrisp } from "@/lib/jobs/sync-crisp";
+import { runSyncCrisp } from "@/features/integrations/crisp/sync";
 
 export const syncCrispTask = schedules.task({
   id: "sync-crisp",

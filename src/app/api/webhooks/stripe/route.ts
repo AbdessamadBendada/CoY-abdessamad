@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe/client";
-import { prisma } from "@/lib/prisma";
-import { generateFacturxXml } from "@/lib/billing/facturx";
-import { createSetupFeeInvoiceItem } from "@/lib/billing/setup-fee";
-import { sendSystemEmail } from "@/lib/brevo/send-system-email";
+import { stripe } from "@/features/billing/stripe/client";
+import { prisma } from "@/shared/db/prisma";
+import { generateFacturxXml } from "@/features/billing/services/facturx";
+import { createSetupFeeInvoiceItem } from "@/features/billing/services/setup-fee";
+import { sendSystemEmail } from "@/features/messaging/brevo/send-system-email";
 import { Prisma } from "@prisma/client";
 import type { Plan, BillingCycle, TenantStatus } from "@prisma/client";
 import type Stripe from "stripe";

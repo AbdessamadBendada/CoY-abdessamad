@@ -17,14 +17,14 @@ const mocks = vi.hoisted(() => ({
   sendSystemEmail: vi.fn(),
 }));
 
-vi.mock("@/lib/stripe/client", () => ({
+vi.mock("@/features/billing/stripe/client", () => ({
   stripe: {
     webhooks: { constructEvent: mocks.constructEvent },
     subscriptions: { retrieve: mocks.retrieveSubscription },
   },
 }));
 
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/shared/db/prisma", () => ({
   prisma: {
     stripeWebhookEvent: {
       create: mocks.webhookCreate,
@@ -42,11 +42,11 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
-vi.mock("@/lib/billing/setup-fee", () => ({
+vi.mock("@/features/billing/services/setup-fee", () => ({
   createSetupFeeInvoiceItem: mocks.createSetupFee,
 }));
-vi.mock("@/lib/brevo/send-system-email", () => ({ sendSystemEmail: mocks.sendSystemEmail }));
-vi.mock("@/lib/billing/facturx", () => ({ generateFacturxXml: vi.fn() }));
+vi.mock("@/features/messaging/brevo/send-system-email", () => ({ sendSystemEmail: mocks.sendSystemEmail }));
+vi.mock("@/features/billing/services/facturx", () => ({ generateFacturxXml: vi.fn() }));
 
 import { POST } from "@/app/api/webhooks/stripe/route";
 

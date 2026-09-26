@@ -1,7 +1,7 @@
 import { queue, task } from "@trigger.dev/sdk";
-import { createJobsClient } from "@/lib/prisma";
-import { processScoringCustomer } from "@/lib/jobs/score-customers";
-import { backgroundProcessing } from "@/lib/config/background-processing";
+import { createJobsClient } from "@/shared/db/prisma";
+import { processScoringCustomer } from "@/features/scoring/queue";
+import { backgroundProcessing } from "@/shared/config/background-processing";
 
 export const scoringQueue = queue({
   name: "coy-scoring",

@@ -1,5 +1,5 @@
 import { schedules } from "@trigger.dev/sdk";
-import { runSyncPrestaShop } from "@/lib/jobs/sync-prestashop";
+import { runSyncPrestaShop } from "@/features/integrations/prestashop/sync";
 
 export const syncPrestaShopTask = schedules.task({
   id: "sync-prestashop",

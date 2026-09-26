@@ -1,8 +1,8 @@
 import { createHmac } from "crypto";
 import { NextResponse, type NextRequest } from "next/server";
-import { requireAuth } from "@/lib/auth";
-import { getAppUrl } from "@/lib/utils/get-app-url";
-import { canManageTenant } from "@/lib/security/roles";
+import { requireAuth } from "@/features/auth/server";
+import { getAppUrl } from "@/shared/utils/get-app-url";
+import { canManageTenant } from "@/shared/security/events/roles";
 
 function requireEnv(name: string): string {
   const value = process.env[name];

@@ -1,6 +1,6 @@
 import { timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { runTriggerWinbackActions } from "@/lib/jobs/trigger-winback-actions";
+import { runTriggerWinbackActions } from "@/features/winback/trigger-actions";
 
 // ─── Auth Vercel Cron ─────────────────────────────────────────────────────────
 

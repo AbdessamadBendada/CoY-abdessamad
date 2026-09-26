@@ -3,13 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { randomBytes } from "crypto";
 import type { Prisma, IntegrationType } from "@prisma/client";
-import { requireAuth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/features/auth/server";
+import { prisma } from "@/shared/db/prisma";
 import { PLAN_QUOTAS, toTenantPlan } from "@/types/database";
-import { testPrestaShop, testWooCommerce, testCrisp } from "@/lib/integrations/test-connection";
-import { encrypt, decrypt } from "@/lib/crypto";
-import { isIntegrationActive } from "@/lib/config/active-integrations";
-import { canManageTenant } from "@/lib/security/roles";
+import { testPrestaShop, testWooCommerce, testCrisp } from "@/features/integrations/connection/providers/test-connection";
+import { encrypt, decrypt } from "@/shared/security/crypto";
+import { isIntegrationActive } from "@/features/integrations/config/active-integrations";
+import { canManageTenant } from "@/shared/security/events/roles";
 
 // ─── CONNECT ─────────────────────────────────────────────────────────────────
 //

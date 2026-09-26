@@ -1,5 +1,5 @@
 import { schedules } from "@trigger.dev/sdk";
-import { runTrialEmailSequence } from "@/lib/email/trial-sequence";
+import { runTrialEmailSequence } from "@/features/messaging/lifecycle-email/trial-sequence";
 
 export const trialEmailsTask = schedules.task({
   id: "trial-emails",

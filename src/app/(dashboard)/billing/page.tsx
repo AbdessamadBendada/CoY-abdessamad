@@ -1,12 +1,12 @@
 export const dynamic = "force-dynamic";
 
 
-import { requireAuth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/features/auth/server";
+import { prisma } from "@/shared/db/prisma";
 import { differenceInDays } from "date-fns";
 import { BillingTabs } from "./components/billing-tabs";
 import type { InvoiceRow } from "./components/invoices-table";
-import { checkROIGuarantee } from "@/lib/billing/roi-guarantee";
+import { checkROIGuarantee } from "@/features/billing/services/roi-guarantee";
 
 export default async function BillingPage({
   searchParams,

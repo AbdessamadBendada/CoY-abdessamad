@@ -1,10 +1,10 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { NextResponse, type NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { encrypt } from "@/lib/crypto";
-import { registerGorgiasWebhooks } from "@/lib/integrations/register-gorgias-webhooks";
-import { getCurrentUser } from "@/lib/auth";
-import { getAppUrl } from "@/lib/utils/get-app-url";
+import { prisma } from "@/shared/db/prisma";
+import { encrypt } from "@/shared/security/crypto";
+import { registerGorgiasWebhooks } from "@/features/integrations/connection/providers/register-gorgias-webhooks";
+import { getCurrentUser } from "@/features/auth/server";
+import { getAppUrl } from "@/shared/utils/get-app-url";
 
 function requireEnv(name: string): string {
   const value = process.env[name];

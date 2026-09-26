@@ -1,6 +1,6 @@
 import { queue, task } from "@trigger.dev/sdk";
-import { runSendScheduled } from "@/lib/jobs/send-scheduled";
-import { backgroundProcessing } from "@/lib/config/background-processing";
+import { runSendScheduled } from "@/features/messaging/dispatch";
+import { backgroundProcessing } from "@/shared/config/background-processing";
 
 export const messageQueue = queue({
   name: "coy-message-delivery",

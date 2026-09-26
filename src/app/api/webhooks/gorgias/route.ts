@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse, after } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { scoreConversation } from "@/lib/ai/agents";
-import { computeOrderVariables } from "@/lib/customers/compute-order-variables";
-import { computeServiceVariables } from "@/lib/customers/compute-service-variables";
+import { prisma } from "@/shared/db/prisma";
+import { scoreConversation } from "@/features/scoring/ai/agents";
+import { computeOrderVariables } from "@/features/scoring/customer-data/compute-order-variables";
+import { computeServiceVariables } from "@/features/scoring/customer-data/compute-service-variables";
 import { createHmac, timingSafeEqual } from "crypto";
 import type { Prisma } from "@prisma/client";
-import { decrypt } from "@/lib/crypto";
-import { logSecurityEvent } from "@/lib/security/log-event";
+import { decrypt } from "@/shared/security/crypto";
+import { logSecurityEvent } from "@/shared/security/events/log-event";
 import { CHURN_SCORE_DEFAULT_THRESHOLD } from "@/config/constants";
-import { getAppUrl } from "@/lib/utils/get-app-url";
+import { getAppUrl } from "@/shared/utils/get-app-url";
 
 // ─── Types payload Gorgias ─────────────────────────────────────────────────
 

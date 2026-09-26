@@ -1,9 +1,9 @@
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/shared/db/prisma";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { TrendingUp, Users, AlertTriangle, BarChart3 } from "lucide-react";
 import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist";
-import { getOnboardingStatus } from "@/lib/onboarding";
+import { getOnboardingStatus } from "@/features/auth/onboarding";
 import { PLANS } from "@/config/plans";
 import { KpiValue } from "./kpi-value";
 

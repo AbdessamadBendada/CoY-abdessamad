@@ -1,8 +1,8 @@
 "use server";
 
-import { sendSystemEmail } from "@/lib/brevo/send-system-email";
-import { escapeHtml } from "@/lib/utils/escape-html";
-import { isContactRateLimited } from "@/lib/utils/rate-limit";
+import { sendSystemEmail } from "@/features/messaging/brevo/send-system-email";
+import { escapeHtml } from "@/shared/utils/escape-html";
+import { isContactRateLimited } from "@/shared/utils/rate-limit";
 
 export type ContactIntent = "question" | "demo" | "partenariat" | "support";
 

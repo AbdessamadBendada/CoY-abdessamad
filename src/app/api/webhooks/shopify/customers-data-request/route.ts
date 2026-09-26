@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { sendSystemEmail } from "@/lib/brevo/send-system-email";
-import { escapeHtml } from "@/lib/utils/escape-html";
+import { prisma } from "@/shared/db/prisma";
+import { sendSystemEmail } from "@/features/messaging/brevo/send-system-email";
+import { escapeHtml } from "@/shared/utils/escape-html";
 import {
   findShopifyIntegration,
   parseShopifyPrivacyPayload,
   validateShopifyPrivacyHmac,
-} from "@/lib/integrations/shopify-privacy";
+} from "@/features/integrations/connection/providers/shopify-privacy";
 
 export async function POST(request: NextRequest) {
   const rawBody = await request.text();

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { backgroundProcessing, retryAt } from "@/lib/config/background-processing";
-import { roundRobin } from "@/lib/jobs/fair-dispatch";
+import { backgroundProcessing, retryAt } from "@/shared/config/background-processing";
+import { roundRobin } from "@/features/scoring/fair-dispatch";
 
 describe("background processing scale simulation", () => {
   it("gives all realistic tenant backlogs immediate progress without exceeding configured concurrency", () => {

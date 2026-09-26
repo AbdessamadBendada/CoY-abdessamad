@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 
-import { requireAuth } from "@/lib/auth";
+import { requireAuth } from "@/features/auth/server";
 import { Mail, MessageCircle, BookOpen, ExternalLink } from "lucide-react";
 
 export default async function SupportPage() {

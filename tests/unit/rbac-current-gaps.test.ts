@@ -6,13 +6,13 @@ const mocks = vi.hoisted(() => ({
   requireAuthApi: vi.fn(),
 }));
 
-vi.mock("@/lib/auth", () => ({
+vi.mock("@/features/auth/server", () => ({
   requireAuth: mocks.requireAuth,
   requireAuthApi: mocks.requireAuthApi,
 }));
-vi.mock("@/lib/prisma", () => ({ prisma: {} }));
-vi.mock("@/lib/security/log-event", () => ({ logSecurityEvent: vi.fn() }));
-vi.mock("@/lib/ai/agents", () => ({ generateAction: vi.fn() }));
+vi.mock("@/shared/db/prisma", () => ({ prisma: {} }));
+vi.mock("@/shared/security/events/log-event", () => ({ logSecurityEvent: vi.fn() }));
+vi.mock("@/features/scoring/ai/agents", () => ({ generateAction: vi.fn() }));
 
 import { GET as startShopifyOAuth } from "@/app/api/shopify/oauth/install/route";
 import { GET as startGorgiasOAuth } from "@/app/api/gorgias/oauth/install/route";

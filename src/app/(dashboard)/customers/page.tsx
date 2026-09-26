@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 
 import { Suspense } from "react";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth } from "@/features/auth/server";
 import { CustomersContent } from "./_components/customers-content";
 
 const VALID_RISKS = ["ALL", "CRITICAL", "HIGH", "MEDIUM", "LOW"] as const;

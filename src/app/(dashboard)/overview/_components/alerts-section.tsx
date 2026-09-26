@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/shared/db/prisma";
 import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
 

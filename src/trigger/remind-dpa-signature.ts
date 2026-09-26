@@ -1,5 +1,5 @@
 import { schedules } from "@trigger.dev/sdk";
-import { runDpaReminderSequence } from "@/lib/email/dpa-reminder";
+import { runDpaReminderSequence } from "@/features/messaging/lifecycle-email/dpa-reminder";
 
 export const remindDpaSignatureTask = schedules.task({
   id: "remind-dpa-signature",

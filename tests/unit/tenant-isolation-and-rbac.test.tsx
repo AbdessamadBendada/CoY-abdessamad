@@ -10,12 +10,12 @@ const mocks = vi.hoisted(() => ({
   }),
 }));
 
-vi.mock("@/lib/auth", () => ({
+vi.mock("@/features/auth/server", () => ({
   requireAuth: mocks.requireAuth,
   requireAuthApi: mocks.requireAuthApi,
 }));
 
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/shared/db/prisma", () => ({
   prisma: {
     customer: { findFirst: mocks.customerFindFirst },
     winbackAction: { updateMany: mocks.actionUpdateMany },

@@ -1,6 +1,6 @@
 import { schedules, tasks } from "@trigger.dev/sdk";
-import { createJobsClient } from "@/lib/prisma";
-import { dispatchScoreCustomers } from "@/lib/jobs/score-customers";
+import { createJobsClient } from "@/shared/db/prisma";
+import { dispatchScoreCustomers } from "@/features/scoring/queue";
 import { scoreCustomerTask } from "./score-customer";
 
 export const scoreCustomersTask = schedules.task({

@@ -1,6 +1,6 @@
 import { timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { runSyncPrestaShop } from "@/lib/jobs/sync-prestashop";
+import { runSyncPrestaShop } from "@/features/integrations/prestashop/sync";
 
 // ─── Auth Vercel Cron ─────────────────────────────────────────────────────────
 

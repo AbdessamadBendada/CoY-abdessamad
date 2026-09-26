@@ -4,7 +4,7 @@ import { useState } from "react";
 import { CurrentPlanCard } from "./current-plan-card";
 import { PlanSelector } from "./plan-selector";
 import { InvoicesTable, type InvoiceRow } from "./invoices-table";
-import type { ROIGuaranteeResult } from "@/lib/billing/roi-guarantee";
+import type { ROIGuaranteeResult } from "@/features/billing/services/roi-guarantee";
 
 interface BillingTabsProps {
   plan: string;

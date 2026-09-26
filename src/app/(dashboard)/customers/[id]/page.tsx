@@ -3,8 +3,8 @@ export const dynamic = "force-dynamic";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, MessageSquare, Zap, User } from "lucide-react";
-import { requireAuth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/features/auth/server";
+import { prisma } from "@/shared/db/prisma";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { CustomerRiskBadge, RISK_CONFIG, type ChurnRisk } from "../components/customer-risk-badge";
 

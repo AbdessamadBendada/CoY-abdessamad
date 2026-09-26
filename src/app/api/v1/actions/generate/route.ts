@@ -1,20 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
-import { prisma } from "@/lib/prisma";
-import { logSecurityEvent } from "@/lib/security/log-event";
-import { generateAction, moderateAction, decideActionTiming } from "@/lib/ai/agents";
-import { sendBrevoEmail } from "@/lib/brevo/send-email";
-import { sendBrevoSms } from "@/lib/brevo/send-sms";
-import type { BrevoSendResult } from "@/lib/brevo/send-email";
+import { prisma } from "@/shared/db/prisma";
+import { logSecurityEvent } from "@/shared/security/events/log-event";
+import { generateAction, moderateAction, decideActionTiming } from "@/features/scoring/ai/agents";
+import { sendBrevoEmail } from "@/features/messaging/brevo/send-email";
+import { sendBrevoSms } from "@/features/messaging/brevo/send-sms";
+import type { BrevoSendResult } from "@/features/messaging/brevo/send-email";
 import { COOLDOWN_DAYS_DEFAULT } from "@/config/constants";
 import { PLAN_QUOTAS, RESTRICTIVE_QUOTAS, toTenantPlan } from "@/types/database";
-import { checkChannelQuota, reserveSmsCount, releaseSmsCount } from "@/lib/billing/quota-guards";
+import { checkChannelQuota, reserveSmsCount, releaseSmsCount } from "@/features/billing/services/quota-guards";
 import type { Prisma } from "@prisma/client";
 import { z } from "zod";
-import { sanitizeEmailHtml } from "@/lib/utils/sanitize-email-html";
+import { sanitizeEmailHtml } from "@/shared/utils/sanitize-email-html";
 import { toValidTone, toValidCompensationType } from "@/types/scenarios";
 import { PLAN_PSYCH_TRIGGERS } from "@/config/psych-triggers";
-import { getAppUrl } from "@/lib/utils/get-app-url";
+import { getAppUrl } from "@/shared/utils/get-app-url";
 
 // ─── Authentification par API key ─────────────────────────────────────────────
 

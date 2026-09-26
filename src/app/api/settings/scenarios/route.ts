@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
-import { requireAuthApi } from "@/lib/auth";
+import { prisma } from "@/shared/db/prisma";
+import { requireAuthApi } from "@/features/auth/server";
 import {
   TONE_VALUES,
   AUTO_SEND_MODE_VALUES,
@@ -10,7 +10,7 @@ import {
   SCENARIO_LIMITS,
 } from "@/types/scenarios";
 import type { Prisma, WinbackScenario } from "@prisma/client";
-import { canManageTenant } from "@/lib/security/roles";
+import { canManageTenant } from "@/shared/security/events/roles";
 
 // Sérialisation explicite Decimal → number — ne jamais dépendre du JSON.stringify
 // implicite de Prisma.Decimal (toJSON renvoie une string, format non contractuel).

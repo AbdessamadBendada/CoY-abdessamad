@@ -10,7 +10,7 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { getAppUrl } from "@/lib/utils/get-app-url";
+import { getAppUrl } from "@/shared/utils/get-app-url";
 
 interface WooCommerceWebhookDrawerProps {
   open: boolean;

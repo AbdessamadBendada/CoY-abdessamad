@@ -3,9 +3,9 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { prisma } from "@/lib/prisma";
+import { createClient } from "@/shared/auth/supabase/server";
+import { createSupabaseAdminClient } from "@/shared/auth/supabase/admin";
+import { prisma } from "@/shared/db/prisma";
 import { SECTORS } from "@/config/sectors";
 
 // ─── LOGIN ────────────────────────────────────────────

@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/shared/db/prisma";
 import { PLAN_QUOTAS } from "@/types/database";
 import { QUOTA_CRITICAL_PERCENT } from "@/config/constants";
 import { StatCard } from "@/components/dashboard/stat-card";

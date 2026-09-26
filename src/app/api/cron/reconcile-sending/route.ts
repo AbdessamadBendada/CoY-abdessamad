@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
-import { runReconcileSending } from "@/lib/jobs/reconcile-sending";
+import { runReconcileSending } from "@/features/messaging/reconcile";
 
 // ─── Auth Vercel Cron ─────────────────────────────────────────────────────────
 

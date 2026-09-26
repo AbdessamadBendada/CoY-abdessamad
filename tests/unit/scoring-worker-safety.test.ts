@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({ scoreConversation: vi.fn(), order: vi.fn(), service: vi.fn() }));
-vi.mock("@/lib/ai/agents", () => ({ scoreConversation: mocks.scoreConversation }));
-vi.mock("@/lib/customers/compute-order-variables", () => ({ computeOrderVariables: mocks.order }));
-vi.mock("@/lib/customers/compute-service-variables", () => ({ computeServiceVariables: mocks.service }));
+vi.mock("@/features/scoring/ai/agents", () => ({ scoreConversation: mocks.scoreConversation }));
+vi.mock("@/features/scoring/customer-data/compute-order-variables", () => ({ computeOrderVariables: mocks.order }));
+vi.mock("@/features/scoring/customer-data/compute-service-variables", () => ({ computeServiceVariables: mocks.service }));
 
-import { processScoringCustomer } from "@/lib/jobs/score-customers";
+import { processScoringCustomer } from "@/features/scoring/queue";
 
 const customer = {
   id: "customer-a", tenantId: "tenant-a", firstName: "Ada", lastName: "Lovelace", ltv: 100,

@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/shared/db/prisma";
 import {
   findShopifyIntegration,
   parseShopifyPrivacyPayload,
   validateShopifyPrivacyHmac,
-} from "@/lib/integrations/shopify-privacy";
+} from "@/features/integrations/connection/providers/shopify-privacy";
 
 export async function POST(request: NextRequest) {
   const rawBody = await request.text();

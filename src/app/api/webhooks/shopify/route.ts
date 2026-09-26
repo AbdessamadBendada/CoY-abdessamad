@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/shared/db/prisma";
 import { createHmac, timingSafeEqual } from "crypto";
 import type { Prisma } from "@prisma/client";
-import { checkAttribution } from "@/lib/actions/check-attribution";
-import { decrypt } from "@/lib/crypto";
-import { logSecurityEvent } from "@/lib/security/log-event";
-import { sendSystemEmail } from "@/lib/brevo/send-system-email";
+import { checkAttribution } from "@/features/analytics/check-attribution";
+import { decrypt } from "@/shared/security/crypto";
+import { logSecurityEvent } from "@/shared/security/events/log-event";
+import { sendSystemEmail } from "@/features/messaging/brevo/send-system-email";
 
 // ─── Types payload Shopify ─────────────────────────────────────────────────
 

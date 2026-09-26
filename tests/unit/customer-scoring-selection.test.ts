@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { BATCH_SIZE, RESCORE_DAYS, dispatchScoreCustomers } from "@/lib/jobs/score-customers";
+import { BATCH_SIZE, RESCORE_DAYS, dispatchScoreCustomers } from "@/features/scoring/queue";
 
 function scoringPrisma(customersByTenant: Record<string, number>) {
   return {

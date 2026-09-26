@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 
 import { Suspense } from "react";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth } from "@/features/auth/server";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { differenceInDays, format } from "date-fns";

@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/shared/db/prisma";
 import { confirmOptOut } from "./actions";
 
 export default async function OptOutPage({

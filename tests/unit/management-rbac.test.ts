@@ -10,21 +10,21 @@ const mocks = vi.hoisted(() => ({
   }),
 }));
 
-vi.mock("@/lib/auth", () => ({ requireAuth: mocks.requireAuth }));
-vi.mock("@/lib/billing/checkout", () => ({ createCoyCheckoutSession: mocks.checkout }));
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/features/auth/server", () => ({ requireAuth: mocks.requireAuth }));
+vi.mock("@/features/billing/services/checkout", () => ({ createCoyCheckoutSession: mocks.checkout }));
+vi.mock("@/shared/db/prisma", () => ({
   prisma: {
     tenant: { update: mocks.tenantUpdate },
   },
 }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
-vi.mock("@/lib/integrations/test-connection", () => ({
+vi.mock("@/features/integrations/connection/providers/test-connection", () => ({
   testPrestaShop: vi.fn(),
   testWooCommerce: vi.fn(),
   testCrisp: vi.fn(),
 }));
-vi.mock("@/lib/crypto", () => ({ encrypt: vi.fn(), decrypt: vi.fn() }));
+vi.mock("@/shared/security/crypto", () => ({ encrypt: vi.fn(), decrypt: vi.fn() }));
 
 import { createCheckoutSession } from "@/app/(dashboard)/billing/actions";
 import { connectIntegration } from "@/app/(dashboard)/integrations/actions";

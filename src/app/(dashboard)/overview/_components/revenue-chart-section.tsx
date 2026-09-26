@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/shared/db/prisma";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { RevenueChart, type MonthlyRevenue } from "@/components/dashboard/revenue-chart";

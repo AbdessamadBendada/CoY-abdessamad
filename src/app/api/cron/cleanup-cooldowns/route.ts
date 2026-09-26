@@ -1,6 +1,6 @@
 import { timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { runCleanupCooldowns } from "@/lib/jobs/cleanup-cooldowns";
+import { runCleanupCooldowns } from "@/features/winback/cleanup-cooldowns";
 
 // ─── Auth Vercel Cron ─────────────────────────────────────────────────────────
 

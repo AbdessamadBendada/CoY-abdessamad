@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => ({
   }),
 }));
 
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/shared/db/prisma", () => ({
   prisma: {
     customer: { findUnique: mocks.customerFindUnique },
     $transaction: mocks.transaction,

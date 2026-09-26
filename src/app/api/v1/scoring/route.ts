@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
-import { prisma } from "@/lib/prisma";
-import { scoreConversation } from "@/lib/ai/agents";
+import { prisma } from "@/shared/db/prisma";
+import { scoreConversation } from "@/features/scoring/ai/agents";
 import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 

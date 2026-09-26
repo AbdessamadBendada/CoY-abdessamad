@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/utils/cn";
 import {
   connectIntegration,
   disconnectIntegration,
@@ -46,7 +46,7 @@ import {
 import { ShopifySetupDrawer } from "@/components/dashboard/shopify-setup-drawer";
 import { CrispSetupDrawer } from "@/components/dashboard/crisp-setup-drawer";
 import { WooCommerceWebhookDrawer } from "@/components/dashboard/woocommerce-webhook-drawer";
-import { isIntegrationActive } from "@/lib/config/active-integrations";
+import { isIntegrationActive } from "@/features/integrations/config/active-integrations";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

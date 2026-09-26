@@ -1,5 +1,5 @@
 import { schedules } from "@trigger.dev/sdk";
-import { runTriggerWinbackActions } from "@/lib/jobs/trigger-winback-actions";
+import { runTriggerWinbackActions } from "@/features/winback/trigger-actions";
 
 export const triggerWinbackActionsTask = schedules.task({
   id: "trigger-winback-actions",

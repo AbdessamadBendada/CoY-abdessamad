@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
-import { requireAuthApi } from "@/lib/auth";
-import { logSecurityEvent } from "@/lib/security/log-event";
-import { moderateAction } from "@/lib/ai/agents";
-import { sanitizeEmailHtml } from "@/lib/utils/sanitize-email-html";
-import { sendBrevoEmail } from "@/lib/brevo/send-email";
-import { sendBrevoSms } from "@/lib/brevo/send-sms";
+import { prisma } from "@/shared/db/prisma";
+import { requireAuthApi } from "@/features/auth/server";
+import { logSecurityEvent } from "@/shared/security/events/log-event";
+import { moderateAction } from "@/features/scoring/ai/agents";
+import { sanitizeEmailHtml } from "@/shared/utils/sanitize-email-html";
+import { sendBrevoEmail } from "@/features/messaging/brevo/send-email";
+import { sendBrevoSms } from "@/features/messaging/brevo/send-sms";
 import { COOLDOWN_DAYS_DEFAULT } from "@/config/constants";
 import { PLAN_QUOTAS, RESTRICTIVE_QUOTAS, toTenantPlan } from "@/types/database";
-import { checkChannelQuota } from "@/lib/billing/quota-guards";
-import { getAppUrl } from "@/lib/utils/get-app-url";
+import { checkChannelQuota } from "@/features/billing/services/quota-guards";
+import { getAppUrl } from "@/shared/utils/get-app-url";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 

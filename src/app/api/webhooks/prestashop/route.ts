@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
-import { prisma } from "@/lib/prisma";
-import { decrypt } from "@/lib/crypto";
+import { prisma } from "@/shared/db/prisma";
+import { decrypt } from "@/shared/security/crypto";
 import {
   processPrestaShopOrder,
   type PrestaShopOrderPayload,
-} from "@/lib/jobs/process-prestashop-order";
+} from "@/features/integrations/prestashop/process-order";
 
 // ─── Validation API key PrestaShop ───────────────────────────────────────
 

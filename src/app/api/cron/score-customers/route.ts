@@ -1,6 +1,6 @@
 import { timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { runScoreCustomers } from "@/lib/jobs/score-customers";
+import { runScoreCustomers } from "@/features/scoring/queue";
 
 // ─── Auth Vercel Cron ─────────────────────────────────────────────────────────
 

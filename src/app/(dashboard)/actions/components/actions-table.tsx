@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { RefreshCw, X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/utils/cn";
 import {
   ActionStatusBadge,
   ActionChannelBadge,

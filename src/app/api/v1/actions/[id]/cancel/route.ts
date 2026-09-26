@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { requireAuthApi } from "@/lib/auth";
-import { canManageTenant } from "@/lib/security/roles";
+import { prisma } from "@/shared/db/prisma";
+import { requireAuthApi } from "@/features/auth/server";
+import { canManageTenant } from "@/shared/security/events/roles";
 
 // ─── POST /api/v1/actions/[id]/cancel ─────────────────────────────────────────
 

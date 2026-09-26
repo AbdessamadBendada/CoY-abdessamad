@@ -1,11 +1,11 @@
 export const dynamic = "force-dynamic";
 
 
-import { requireAuth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/features/auth/server";
+import { prisma } from "@/shared/db/prisma";
 import { PLAN_QUOTAS } from "@/types/database";
 import { IntegrationCard } from "@/components/dashboard/integration-card";
-import { ACTIVE_INTEGRATIONS } from "@/lib/config/active-integrations";
+import { ACTIVE_INTEGRATIONS } from "@/features/integrations/config/active-integrations";
 
 type IntegrationType = (typeof ACTIVE_INTEGRATIONS)[number];
 

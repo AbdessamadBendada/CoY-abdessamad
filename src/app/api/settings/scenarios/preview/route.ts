@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
-import { requireAuthApi } from "@/lib/auth";
-import { logSecurityEvent } from "@/lib/security/log-event";
-import { generateAction } from "@/lib/ai/agents";
-import { sanitizeEmailHtml } from "@/lib/utils/sanitize-email-html";
+import { prisma } from "@/shared/db/prisma";
+import { requireAuthApi } from "@/features/auth/server";
+import { logSecurityEvent } from "@/shared/security/events/log-event";
+import { generateAction } from "@/features/scoring/ai/agents";
+import { sanitizeEmailHtml } from "@/shared/utils/sanitize-email-html";
 import { toValidTone, toValidCompensationType } from "@/types/scenarios";
 import { PLAN_PSYCH_TRIGGERS } from "@/config/psych-triggers";
 import { SECTOR_MODE, SECTOR_SPORT, SECTOR_DECORATION, SECTOR_AUTRE } from "@/config/sectors";
-import { canManageTenant } from "@/lib/security/roles";
+import { canManageTenant } from "@/shared/security/events/roles";
 
 // Rate limit: 5 previews/hour/tenant — stored in QuotaUsage DB (atomically)
 // period format: "preview:YYYY-MM-DDTHH" — cannot collide with business periods

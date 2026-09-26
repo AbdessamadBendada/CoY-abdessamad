@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { dispatchScheduledActions, retryableDeliveryError } from "@/lib/jobs/send-scheduled";
+import { dispatchScheduledActions, retryableDeliveryError } from "@/features/messaging/dispatch";
 
 function prismaForMessages() {
   return {

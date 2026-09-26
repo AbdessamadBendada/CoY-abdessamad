@@ -1,6 +1,6 @@
 import { timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { runSyncCrisp } from "@/lib/jobs/sync-crisp";
+import { runSyncCrisp } from "@/features/integrations/crisp/sync";
 
 function authenticateCron(request: NextRequest): boolean {
   const auth = request.headers.get("authorization");

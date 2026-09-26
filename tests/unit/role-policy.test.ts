@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canManageBilling, canManageTenant } from "@/lib/security/roles";
+import { canManageBilling, canManageTenant } from "@/shared/security/events/roles";
 
 describe("role policy", () => {
   it("allows OWNER and ADMIN to manage tenant configuration", () => {

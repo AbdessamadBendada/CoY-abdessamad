@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => ({
   sendSms: vi.fn(),
 }));
 
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/shared/db/prisma", () => ({
   createJobsClient: () => ({
     winbackAction: {
       findMany: mocks.findMany,
@@ -19,14 +19,14 @@ vi.mock("@/lib/prisma", () => ({
     $disconnect: mocks.disconnect,
   }),
 }));
-vi.mock("@/lib/ai/agents", () => ({
+vi.mock("@/features/scoring/ai/agents", () => ({
   generateAction: mocks.generateAction,
   moderateAction: mocks.moderateAction,
 }));
-vi.mock("@/lib/brevo/send-email", () => ({ sendBrevoEmail: mocks.sendEmail }));
-vi.mock("@/lib/brevo/send-sms", () => ({ sendBrevoSms: mocks.sendSms }));
+vi.mock("@/features/messaging/brevo/send-email", () => ({ sendBrevoEmail: mocks.sendEmail }));
+vi.mock("@/features/messaging/brevo/send-sms", () => ({ sendBrevoSms: mocks.sendSms }));
 
-import { capScheduledPromoValue, runSendScheduled } from "@/lib/jobs/send-scheduled";
+import { capScheduledPromoValue, runSendScheduled } from "@/features/messaging/dispatch";
 
 beforeEach(() => {
   vi.spyOn(console, "log").mockImplementation(() => {});

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
-import { requireAuthApi } from "@/lib/auth";
+import { prisma } from "@/shared/db/prisma";
+import { requireAuthApi } from "@/features/auth/server";
 import { ScenarioInputSchema, serializeScenario } from "../route";
-import { canManageTenant } from "@/lib/security/roles";
+import { canManageTenant } from "@/shared/security/events/roles";
 
 // ─── GET /api/settings/scenarios/[id] ─────────────────────────────────────────
 

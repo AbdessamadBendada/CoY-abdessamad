@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PLAN_QUOTAS, toTenantPlan } from "@/types/database";
-import type { ROIGuaranteeResult } from "@/lib/billing/roi-guarantee";
+import type { ROIGuaranteeResult } from "@/features/billing/services/roi-guarantee";
 
 const PLAN_LABELS: Record<string, string> = {
   COY: "CoY",

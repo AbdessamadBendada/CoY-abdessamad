@@ -1,5 +1,5 @@
 import { schedules } from "@trigger.dev/sdk";
-import { runReconcileSending } from "@/lib/jobs/reconcile-sending";
+import { runReconcileSending } from "@/features/messaging/reconcile";
 
 export const reconcileSendingTask = schedules.task({
   id: "reconcile-sending",

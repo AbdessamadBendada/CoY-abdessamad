@@ -1,5 +1,5 @@
 import { schedules } from "@trigger.dev/sdk";
-import { runSyncWooCommerce } from "@/lib/jobs/sync-woocommerce";
+import { runSyncWooCommerce } from "@/features/integrations/woocommerce/sync";
 
 export const syncWooCommerceTask = schedules.task({
   id: "sync-woocommerce",

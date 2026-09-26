@@ -1,6 +1,6 @@
 import { timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { runSendScheduled } from "@/lib/jobs/send-scheduled";
+import { runSendScheduled } from "@/features/messaging/dispatch";
 
 // ─── Auth Vercel Cron ─────────────────────────────────────────────────────────
 

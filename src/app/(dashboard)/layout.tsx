@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 
-import { requireAuth } from "@/lib/auth";
+import { requireAuth } from "@/features/auth/server";
 import { DashboardSidebar } from "@/components/dashboard/sidebar";
 import { DpaPendingBanner } from "@/components/dashboard/dpa-pending-banner";
 import { ScrollReveal } from "@/components/dashboard/scroll-reveal";

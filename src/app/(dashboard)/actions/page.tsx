@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 
 import { Suspense } from "react";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth } from "@/features/auth/server";
 import { ActionsContent } from "./_components/actions-content";
 
 const VALID_STATUSES = [

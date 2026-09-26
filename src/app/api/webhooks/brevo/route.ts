@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/shared/db/prisma";
 
 // ─── Types Brevo webhook events ───────────────────────────────────────────────
 // Doc : https://developers.brevo.com/docs/transactional-webhooks

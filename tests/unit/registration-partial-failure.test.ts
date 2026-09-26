@@ -9,17 +9,17 @@ const mocks = vi.hoisted(() => ({
   redirect: vi.fn(),
 }));
 
-vi.mock("@/lib/supabase/server", () => ({
+vi.mock("@/shared/auth/supabase/server", () => ({
   createClient: async () => ({
     auth: {
       signUp: mocks.signUp,
     },
   }),
 }));
-vi.mock("@/lib/supabase/admin", () => ({
+vi.mock("@/shared/auth/supabase/admin", () => ({
   createSupabaseAdminClient: mocks.createAdminClient,
 }));
-vi.mock("@/lib/prisma", () => ({
+vi.mock("@/shared/db/prisma", () => ({
   prisma: {
     tenant: { create: mocks.tenantCreate },
   },

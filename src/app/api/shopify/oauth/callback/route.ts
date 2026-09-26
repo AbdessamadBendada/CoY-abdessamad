@@ -1,11 +1,11 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { NextResponse, type NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { encrypt } from "@/lib/crypto";
-import { registerShopifyWebhooks } from "@/lib/integrations/register-shopify-webhooks";
-import { getCurrentUser } from "@/lib/auth";
-import { populateBetaMetricsBaseline } from "@/lib/beta-metrics";
-import { getAppUrl } from "@/lib/utils/get-app-url";
+import { prisma } from "@/shared/db/prisma";
+import { encrypt } from "@/shared/security/crypto";
+import { registerShopifyWebhooks } from "@/features/integrations/connection/providers/register-shopify-webhooks";
+import { getCurrentUser } from "@/features/auth/server";
+import { populateBetaMetricsBaseline } from "@/features/analytics/beta-metrics";
+import { getAppUrl } from "@/shared/utils/get-app-url";
 
 const APP_URL = getAppUrl();
 

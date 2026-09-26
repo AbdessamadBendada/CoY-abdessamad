@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/shared/db/prisma";
 import type { Prisma } from "@prisma/client";
 import { PLAN_QUOTAS } from "@/types/database";
 import { Card, CardContent } from "@/components/ui/card";

@@ -1,6 +1,6 @@
 import { schedules, tasks } from "@trigger.dev/sdk";
-import { createJobsClient } from "@/lib/prisma";
-import { dispatchScheduledActions } from "@/lib/jobs/send-scheduled";
+import { createJobsClient } from "@/shared/db/prisma";
+import { dispatchScheduledActions } from "@/features/messaging/dispatch";
 import { sendScheduledActionTask } from "./send-scheduled-action";
 
 export const sendScheduledTask = schedules.task({

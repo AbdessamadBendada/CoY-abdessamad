@@ -1,8 +1,8 @@
 export const dynamic = "force-dynamic";
 
-import { requireAuth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { defaultScenariosForSector } from "@/lib/config/scenario-defaults";
+import { requireAuth } from "@/features/auth/server";
+import { prisma } from "@/shared/db/prisma";
+import { defaultScenariosForSector } from "@/features/winback/config/scenario-defaults";
 import {
   CHURN_SCORE_DEFAULT_THRESHOLD,
   COOLDOWN_DAYS_DEFAULT,

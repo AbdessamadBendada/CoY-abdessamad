@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/features/auth/server";
+import { prisma } from "@/shared/db/prisma";
 
 // ─── GET /api/invoices/[id]/facturx ──────────────────────────────────────────
 // Télécharge le XML Factur-X d'une facture.

@@ -1,5 +1,5 @@
 import { schedules } from "@trigger.dev/sdk";
-import { runCleanupCooldowns } from "@/lib/jobs/cleanup-cooldowns";
+import { runCleanupCooldowns } from "@/features/winback/cleanup-cooldowns";
 
 export const cleanupCooldownsTask = schedules.task({
   id: "cleanup-cooldowns",

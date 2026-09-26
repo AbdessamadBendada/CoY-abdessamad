@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/shared/db/prisma";
 import {
   processWooCommerceOrder,
   type WooCommerceOrderPayload,
-} from "@/lib/jobs/process-woocommerce-order";
+} from "@/features/integrations/woocommerce/process-order";
 import { createHmac, timingSafeEqual } from "crypto";
-import { decrypt } from "@/lib/crypto";
-import { logSecurityEvent } from "@/lib/security/log-event";
+import { decrypt } from "@/shared/security/crypto";
+import { logSecurityEvent } from "@/shared/security/events/log-event";
 
 // ─── Validation HMAC WooCommerce ────────────────────────────────────────────
 // WooCommerce signe : base64(HMAC-SHA256(webhook_secret, rawBody))

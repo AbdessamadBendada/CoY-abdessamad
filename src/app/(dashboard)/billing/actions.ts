@@ -1,8 +1,8 @@
 "use server";
 
-import { requireAuth } from "@/lib/auth";
-import { createCoyCheckoutSession } from "@/lib/billing/checkout";
-import { canManageBilling } from "@/lib/security/roles";
+import { requireAuth } from "@/features/auth/server";
+import { createCoyCheckoutSession } from "@/features/billing/services/checkout";
+import { canManageBilling } from "@/shared/security/events/roles";
 
 // Repli dashboard : si le Checkout déclenché juste après la signature DPA
 // (dpa/actions.ts) n'a pas été complété, ce CTA (plan-selector.tsx, onglet

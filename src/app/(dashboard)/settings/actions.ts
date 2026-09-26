@@ -1,11 +1,11 @@
 "use server";
 
-import { requireAuth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/features/auth/server";
+import { prisma } from "@/shared/db/prisma";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { Prisma } from "@prisma/client";
-import { canManageTenant } from "@/lib/security/roles";
+import { canManageTenant } from "@/shared/security/events/roles";
 
 // ─── Informations entreprise ──────────────────────────────────────────────────
 

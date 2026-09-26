@@ -1,10 +1,10 @@
 "use server";
 
-import { requireAuth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/features/auth/server";
+import { prisma } from "@/shared/db/prisma";
 import { redirect } from "next/navigation";
-import { createCoyCheckoutSession } from "@/lib/billing/checkout";
-import { canManageBilling } from "@/lib/security/roles";
+import { createCoyCheckoutSession } from "@/features/billing/services/checkout";
+import { canManageBilling } from "@/shared/security/events/roles";
 
 export async function acceptDpa() {
   const user = await requireAuth();

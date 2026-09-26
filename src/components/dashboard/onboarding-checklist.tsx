@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import type { OnboardingStatus } from "@/lib/onboarding";
+import type { OnboardingStatus } from "@/features/auth/onboarding";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

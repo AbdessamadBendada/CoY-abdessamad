@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/shared/db/prisma";
 import type { Prisma } from "@prisma/client";
 
 const TOKEN_PATTERN = /^[a-f0-9]{64}$/i;

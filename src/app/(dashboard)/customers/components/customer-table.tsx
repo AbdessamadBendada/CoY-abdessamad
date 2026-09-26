@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import type React from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/utils/cn";
 import { CustomerRiskBadge, type ChurnRisk } from "./customer-risk-badge";
 import { CustomersFilterEmpty } from "./customers-empty-state";
 
