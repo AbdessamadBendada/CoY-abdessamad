@@ -4,9 +4,11 @@ import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { createCoyCheckoutSession } from "@/lib/billing/checkout";
+import { canManageBilling } from "@/lib/security/roles";
 
 export async function acceptDpa() {
   const user = await requireAuth();
+  if (!canManageBilling(user.role)) redirect("/overview");
 
   await prisma.tenant.update({
     where: { id: user.tenant.id },

@@ -31,15 +31,15 @@ import CustomerDetailPage from "@/app/(dashboard)/customers/[id]/page";
 import { POST as cancelAction } from "@/app/api/v1/actions/[id]/cancel/route";
 import { POST as retryAction } from "@/app/api/v1/actions/[id]/retry/route";
 
-const tenantAUser = {
+const tenantAAdmin = {
   id: "user-a",
-  role: "MEMBER",
+  role: "ADMIN",
   tenant: { id: "tenant-a" },
 };
 
 beforeEach(() => {
-  mocks.requireAuth.mockResolvedValue(tenantAUser);
-  mocks.requireAuthApi.mockResolvedValue(tenantAUser);
+  mocks.requireAuth.mockResolvedValue(tenantAAdmin);
+  mocks.requireAuthApi.mockResolvedValue(tenantAAdmin);
   mocks.customerFindFirst.mockReset();
   mocks.actionUpdateMany.mockReset();
   mocks.notFound.mockClear();
@@ -108,24 +108,28 @@ describe("tenant isolation", () => {
   });
 });
 
-describe("current RBAC baseline", () => {
-  it("documents that a MEMBER can currently cancel an owned action", async () => {
+describe("RBAC enforcement", () => {
+  it("blocks a MEMBER from cancelling an owned action", async () => {
+    mocks.requireAuthApi.mockResolvedValue({ ...tenantAAdmin, role: "MEMBER" });
     mocks.actionUpdateMany.mockResolvedValue({ count: 1 });
 
     const response = await cancelAction(new Request("http://test/actions") as never, {
       params: Promise.resolve({ id: "member-action" }),
     });
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(403);
+    expect(mocks.actionUpdateMany).not.toHaveBeenCalled();
   });
 
-  it("documents that a MEMBER can currently reschedule an owned failed action", async () => {
+  it("blocks a MEMBER from rescheduling an owned failed action", async () => {
+    mocks.requireAuthApi.mockResolvedValue({ ...tenantAAdmin, role: "MEMBER" });
     mocks.actionUpdateMany.mockResolvedValue({ count: 1 });
 
     const response = await retryAction(new Request("http://test/actions") as never, {
       params: Promise.resolve({ id: "member-failed-action" }),
     });
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(403);
+    expect(mocks.actionUpdateMany).not.toHaveBeenCalled();
   });
 });

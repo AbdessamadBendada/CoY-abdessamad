@@ -7,10 +7,13 @@ import { getCurrentUser } from "@/lib/auth";
 import { populateBetaMetricsBaseline } from "@/lib/beta-metrics";
 import { getAppUrl } from "@/lib/utils/get-app-url";
 
-const SHOPIFY_CLIENT_ID     = process.env.SHOPIFY_CLIENT_ID!;
-const SHOPIFY_CLIENT_SECRET = process.env.SHOPIFY_CLIENT_SECRET!;
-const OAUTH_STATE_SECRET    = process.env.OAUTH_STATE_SECRET!;
 const APP_URL = getAppUrl();
+
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) throw new Error(`[Shopify OAuth] Variable d'environnement manquante: ${name}`);
+  return value;
+}
 
 interface ShopifyTokenResponse {
   access_token?: string;
@@ -18,14 +21,14 @@ interface ShopifyTokenResponse {
 }
 
 // Vérifie la signature HMAC de la requête Shopify
-function verifyShopifyHmac(params: URLSearchParams, hmac: string): boolean {
+function verifyShopifyHmac(params: URLSearchParams, hmac: string, clientSecret: string): boolean {
   const sorted = Array.from(params.entries())
     .filter(([key]) => key !== "hmac")
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([key, val]) => `${key}=${val}`)
     .join("&");
 
-  const computed = createHmac("sha256", SHOPIFY_CLIENT_SECRET)
+  const computed = createHmac("sha256", clientSecret)
     .update(sorted)
     .digest("hex");
 
@@ -37,7 +40,7 @@ function verifyShopifyHmac(params: URLSearchParams, hmac: string): boolean {
 }
 
 // Vérifie et extrait le tenantId du state signé
-function verifyState(state: string): string | null {
+function verifyState(state: string, oauthStateSecret: string): string | null {
   const parts = state.split(".");
   if (parts.length !== 2) return null;
 
@@ -50,7 +53,7 @@ function verifyState(state: string): string | null {
     return null;
   }
 
-  const expectedSig = createHmac("sha256", OAUTH_STATE_SECRET)
+  const expectedSig = createHmac("sha256", oauthStateSecret)
     .update(payload)
     .digest("base64url");
 
@@ -66,6 +69,9 @@ function verifyState(state: string): string | null {
 }
 
 export async function GET(request: NextRequest) {
+  const shopifyClientId = requireEnv("SHOPIFY_CLIENT_ID");
+  const shopifyClientSecret = requireEnv("SHOPIFY_CLIENT_SECRET");
+  const oauthStateSecret = requireEnv("OAUTH_STATE_SECRET");
   const { searchParams } = request.nextUrl;
   const code = searchParams.get("code");
   const shop = searchParams.get("shop");
@@ -78,7 +84,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Vérifie la signature HMAC Shopify
-  if (!verifyShopifyHmac(searchParams, hmac)) {
+  if (!verifyShopifyHmac(searchParams, hmac, shopifyClientSecret)) {
     return NextResponse.redirect(`${APP_URL}/integrations?error=shopify_invalid_hmac`);
   }
 
@@ -96,7 +102,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Extrait et vérifie le tenantId
-  const tenantId = verifyState(state);
+  const tenantId = verifyState(state, oauthStateSecret);
   if (!tenantId) {
     return NextResponse.redirect(`${APP_URL}/integrations?error=shopify_expired_state`);
   }
@@ -114,8 +120,8 @@ export async function GET(request: NextRequest) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        client_id: SHOPIFY_CLIENT_ID,
-        client_secret: SHOPIFY_CLIENT_SECRET,
+        client_id: shopifyClientId,
+        client_secret: shopifyClientSecret,
         code,
       }),
     });
@@ -144,7 +150,7 @@ export async function GET(request: NextRequest) {
       config: {
         shop_domain: shopDomain,
         access_token: encrypt(accessToken),
-        webhook_secret: encrypt(SHOPIFY_CLIENT_SECRET),
+        webhook_secret: encrypt(shopifyClientSecret),
       },
       lastError: null,
       lastErrorAt: null,
@@ -157,7 +163,7 @@ export async function GET(request: NextRequest) {
       config: {
         shop_domain: shopDomain,
         access_token: encrypt(accessToken),
-        webhook_secret: encrypt(SHOPIFY_CLIENT_SECRET),
+        webhook_secret: encrypt(shopifyClientSecret),
       },
     },
   });

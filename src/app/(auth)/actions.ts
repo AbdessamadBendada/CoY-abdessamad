@@ -4,6 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { prisma } from "@/lib/prisma";
 import { SECTORS } from "@/config/sectors";
 
@@ -80,6 +81,16 @@ export async function register(formData: FormData) {
   }
   const sector = sectorResult.data;
 
+  let supabaseAdmin;
+  try {
+    supabaseAdmin = createSupabaseAdminClient();
+  } catch (error) {
+    console.error("Configuration rollback inscription indisponible:", error);
+    return {
+      error: "L'inscription est temporairement indisponible. Veuillez réessayer plus tard.",
+    };
+  }
+
   // Créer le compte Supabase Auth
   const { data: authData, error: authError } = await supabase.auth.signUp({
     email,
@@ -145,6 +156,19 @@ export async function register(formData: FormData) {
     });
   } catch (dbError: unknown) {
     console.error("Erreur création tenant:", dbError);
+
+    try {
+      const { error: cleanupError } = await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+      if (cleanupError) throw cleanupError;
+    } catch (cleanupError) {
+      console.error("ERREUR CRITIQUE — rollback utilisateur Supabase impossible:", cleanupError);
+      return {
+        error:
+          "Le compte n'a pas pu être finalisé. Contactez le support avant de réessayer.",
+        code: "REGISTRATION_RECOVERY_REQUIRED",
+      };
+    }
+
     return { error: "Erreur lors de la création du compte. Veuillez réessayer." };
   }
 

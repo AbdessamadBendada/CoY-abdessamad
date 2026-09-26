@@ -50,7 +50,7 @@ Never copy production customer data into development or staging. Never paste a p
 
 Store these only in the company password manager and the relevant service's secret settings:
 
-- database URLs/passwords;
+- database URLs/passwords and the server-only Supabase service-role key;
 - Vercel and Trigger access;
 - Stripe/Brevo/Mistral API keys;
 - Shopify/Gorgias client secrets;

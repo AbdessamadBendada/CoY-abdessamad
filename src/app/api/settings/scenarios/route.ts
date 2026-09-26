@@ -10,6 +10,7 @@ import {
   SCENARIO_LIMITS,
 } from "@/types/scenarios";
 import type { Prisma, WinbackScenario } from "@prisma/client";
+import { canManageTenant } from "@/lib/security/roles";
 
 // Sérialisation explicite Decimal → number — ne jamais dépendre du JSON.stringify
 // implicite de Prisma.Decimal (toJSON renvoie une string, format non contractuel).
@@ -121,6 +122,9 @@ export async function POST(request: NextRequest) {
   const user = await requireAuthApi();
   if (!user) {
     return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+  }
+  if (!canManageTenant(user.role)) {
+    return NextResponse.json({ error: "Droits administrateur requis" }, { status: 403 });
   }
 
   const tenantId = user.tenant.id;

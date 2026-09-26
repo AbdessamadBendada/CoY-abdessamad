@@ -2,12 +2,18 @@ import { createHmac } from "crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { getAppUrl } from "@/lib/utils/get-app-url";
+import { canManageTenant } from "@/lib/security/roles";
 
-const SHOPIFY_CLIENT_ID = process.env.SHOPIFY_CLIENT_ID!;
-const OAUTH_STATE_SECRET = process.env.OAUTH_STATE_SECRET!;
 const APP_URL = getAppUrl();
 
-const SHOPIFY_SCOPES = "read_orders,read_customers,write_customers,read_products,read_returns";
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) throw new Error(`[Shopify OAuth] Variable d'environnement manquante: ${name}`);
+  return value;
+}
+
+// Minimum scopes used by order/customer webhook processing.
+const SHOPIFY_SCOPES = "read_orders,read_customers";
 
 function isValidShopDomain(shop: string): boolean {
   return /^[a-zA-Z0-9][a-zA-Z0-9\-]*\.myshopify\.com$/.test(shop);
@@ -15,6 +21,11 @@ function isValidShopDomain(shop: string): boolean {
 
 export async function GET(request: NextRequest) {
   const user = await requireAuth();
+  if (!canManageTenant(user.role)) {
+    return NextResponse.json({ error: "Droits administrateur requis" }, { status: 403 });
+  }
+  const shopifyClientId = requireEnv("SHOPIFY_CLIENT_ID");
+  const oauthStateSecret = requireEnv("OAUTH_STATE_SECRET");
   const tenantId = user.tenant.id;
 
   const shop = request.nextUrl.searchParams.get("shop")?.trim().toLowerCase();
@@ -35,7 +46,7 @@ export async function GET(request: NextRequest) {
   // Génère un state signé : base64url(tenantId:timestamp:hmac)
   const timestamp = Date.now().toString();
   const payload = `${tenantId}:${timestamp}`;
-  const signature = createHmac("sha256", OAUTH_STATE_SECRET)
+  const signature = createHmac("sha256", oauthStateSecret)
     .update(payload)
     .digest("base64url");
   const state = `${Buffer.from(payload).toString("base64url")}.${signature}`;
@@ -43,7 +54,7 @@ export async function GET(request: NextRequest) {
   const redirectUri = `${APP_URL}/api/shopify/oauth/callback`;
 
   const authUrl = new URL(`https://${normalizedShop}/admin/oauth/authorize`);
-  authUrl.searchParams.set("client_id", SHOPIFY_CLIENT_ID);
+  authUrl.searchParams.set("client_id", shopifyClientId);
   authUrl.searchParams.set("scope", SHOPIFY_SCOPES);
   authUrl.searchParams.set("redirect_uri", redirectUri);
   authUrl.searchParams.set("state", state);

@@ -19,9 +19,9 @@ The GitHub Actions workflow uses unmistakably local dummy database URLs for buil
 ## Current behavior captured for later phases
 
 - Customer detail reads and action cancel/retry mutations include the authenticated tenant ID.
-- `MEMBER` users can currently cancel and retry their tenant's actions, initiate Shopify/Gorgias OAuth, and reach AI scenario-preview request validation. Those sensitive-operation RBAC gaps are documented by passing baseline tests; Phase 1 does not change them.
+- `OWNER` and `ADMIN` can manage tenant settings, integrations, scenarios and actions; `MEMBER` is blocked from those mutations and from Shopify/Gorgias OAuth or AI scenario previews. Billing and DPA acceptance remain `OWNER`-only.
 - Stripe rejects invalid signatures, deduplicates completed events and applies a timestamp guard to billing transitions.
 - Scheduled sends claim `SCHEDULED` actions atomically before provider work, exclude processed actions, and cap percentage/fixed promotions.
 - Scoring currently selects at most five customers per tenant and uses a seven-day rescore cutoff.
-- A GET request to a valid opt-out URL immediately writes the unsubscribe. The test intentionally captures this current behavior without fixing it.
-- Supabase signup happens before the Prisma tenant transaction. If tenant creation fails, the current code returns an error but does not compensate/delete the newly created Auth user.
+- A GET request to a valid opt-out URL is read-only; the unsubscribe is written atomically only after an explicit form POST.
+- Supabase signup happens before the Prisma tenant transaction. If tenant creation fails, a server-only Supabase Admin client removes the newly created Auth user; rollback failure returns `REGISTRATION_RECOVERY_REQUIRED` for operations follow-up.

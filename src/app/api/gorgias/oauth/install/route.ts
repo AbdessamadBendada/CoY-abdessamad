@@ -2,6 +2,7 @@ import { createHmac } from "crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { getAppUrl } from "@/lib/utils/get-app-url";
+import { canManageTenant } from "@/lib/security/roles";
 
 function requireEnv(name: string): string {
   const value = process.env[name];
@@ -11,8 +12,6 @@ function requireEnv(name: string): string {
   return value;
 }
 
-const GORGIAS_CLIENT_ID  = requireEnv("GORGIAS_CLIENT_ID");
-const OAUTH_STATE_SECRET = requireEnv("OAUTH_STATE_SECRET");
 const APP_URL = getAppUrl();
 
 // tags:write et events:read retirés (ADR-016) — 0 usage runtime, moindre privilège
@@ -24,6 +23,11 @@ function isValidGorgiasSubdomain(subdomain: string): boolean {
 
 export async function GET(request: NextRequest) {
   const user = await requireAuth();
+  if (!canManageTenant(user.role)) {
+    return NextResponse.json({ error: "Droits administrateur requis" }, { status: 403 });
+  }
+  const gorgiasClientId = requireEnv("GORGIAS_CLIENT_ID");
+  const oauthStateSecret = requireEnv("OAUTH_STATE_SECRET");
   const tenantId = user.tenant.id;
 
   const subdomain = request.nextUrl.searchParams.get("subdomain")?.trim().toLowerCase();
@@ -42,7 +46,7 @@ export async function GET(request: NextRequest) {
   // Génère un state signé : base64url(tenantId:timestamp:subdomain).hmac
   const timestamp = Date.now().toString();
   const payload   = `${tenantId}:${timestamp}:${subdomain}`;
-  const signature = createHmac("sha256", OAUTH_STATE_SECRET)
+  const signature = createHmac("sha256", oauthStateSecret)
     .update(payload)
     .digest("base64url");
   const state = `${Buffer.from(payload).toString("base64url")}.${signature}`;
@@ -50,7 +54,7 @@ export async function GET(request: NextRequest) {
   const redirectUri = `${APP_URL}/api/gorgias/oauth/callback`;
 
   const authUrl = new URL(`https://${subdomain}.gorgias.com/oauth/authorize`);
-  authUrl.searchParams.set("client_id", GORGIAS_CLIENT_ID);
+  authUrl.searchParams.set("client_id", gorgiasClientId);
   authUrl.searchParams.set("response_type", "code");
   authUrl.searchParams.set("scope", GORGIAS_SCOPES);
   authUrl.searchParams.set("redirect_uri", redirectUri);

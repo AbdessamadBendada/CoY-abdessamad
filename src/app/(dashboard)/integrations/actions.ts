@@ -8,6 +8,8 @@ import { prisma } from "@/lib/prisma";
 import { PLAN_QUOTAS, toTenantPlan } from "@/types/database";
 import { testPrestaShop, testWooCommerce, testCrisp } from "@/lib/integrations/test-connection";
 import { encrypt, decrypt } from "@/lib/crypto";
+import { isIntegrationActive } from "@/lib/config/active-integrations";
+import { canManageTenant } from "@/lib/security/roles";
 
 // ─── CONNECT ─────────────────────────────────────────────────────────────────
 //
@@ -16,6 +18,7 @@ import { encrypt, decrypt } from "@/lib/crypto";
 
 export async function connectIntegration(formData: FormData) {
   const user = await requireAuth();
+  if (!canManageTenant(user.role)) return { error: "Droits administrateur requis." };
   const tenantId = user.tenant.id;
   let planKey: keyof typeof PLAN_QUOTAS;
   try {
@@ -24,6 +27,10 @@ export async function connectIntegration(formData: FormData) {
     return { error: "Compte suspendu, annulé, ou plan invalide. Contactez le support." };
   }
   const type = formData.get("type") as string;
+
+  if (!isIntegrationActive(type)) {
+    return { error: "Cette intégration n'est pas disponible dans cette version de CoY." };
+  }
 
   // Vérification quota
   const limit = PLAN_QUOTAS[planKey]?.integrations_limit ?? 1;
@@ -132,6 +139,7 @@ export async function revealPrestashopApiKey(
   integrationId: string
 ): Promise<{ key: string } | { error: string }> {
   const user = await requireAuth();
+  if (!canManageTenant(user.role)) return { error: "Droits administrateur requis." };
 
   const integration = await prisma.integration.findFirst({
     where: {
@@ -178,6 +186,7 @@ export async function revealWooCommerceCredentials(
   integrationId: string
 ): Promise<{ siteUrl: string; consumerKey: string; webhookSecret?: string } | { error: string }> {
   const user = await requireAuth();
+  if (!canManageTenant(user.role)) return { error: "Droits administrateur requis." };
 
   const integration = await prisma.integration.findFirst({
     where: {
@@ -233,6 +242,7 @@ export async function regenerateWooCommerceWebhookSecret(
   integrationId: string
 ): Promise<{ webhookSecret: string } | { error: string }> {
   const user = await requireAuth();
+  if (!canManageTenant(user.role)) return { error: "Droits administrateur requis." };
 
   const integration = await prisma.integration.findFirst({
     where: {
@@ -277,6 +287,7 @@ export async function regenerateWooCommerceWebhookSecret(
 
 export async function disconnectIntegration(integrationId: string) {
   const user = await requireAuth();
+  if (!canManageTenant(user.role)) return { error: "Droits administrateur requis." };
 
   // Vérifier que l'intégration appartient bien au tenant de l'utilisateur
   const integration = await prisma.integration.findFirst({

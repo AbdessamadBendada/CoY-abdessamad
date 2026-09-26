@@ -14,9 +14,6 @@ function requireEnv(name: string): string {
   return value;
 }
 
-const GORGIAS_CLIENT_ID     = requireEnv("GORGIAS_CLIENT_ID");
-const GORGIAS_CLIENT_SECRET = requireEnv("GORGIAS_CLIENT_SECRET");
-const OAUTH_STATE_SECRET    = requireEnv("OAUTH_STATE_SECRET");
 const APP_URL = getAppUrl();
 
 interface GorgiasTokenResponse {
@@ -27,7 +24,7 @@ interface GorgiasTokenResponse {
 }
 
 // Vérifie et extrait tenantId + subdomain du state signé
-function verifyState(state: string): { tenantId: string; subdomain: string } | null {
+function verifyState(state: string, oauthStateSecret: string): { tenantId: string; subdomain: string } | null {
   const parts = state.split(".");
   if (parts.length !== 2) return null;
 
@@ -44,7 +41,7 @@ function verifyState(state: string): { tenantId: string; subdomain: string } | n
     return null;
   }
 
-  const expectedSig = createHmac("sha256", OAUTH_STATE_SECRET)
+  const expectedSig = createHmac("sha256", oauthStateSecret)
     .update(payload)
     .digest("base64url");
 
@@ -60,6 +57,9 @@ function verifyState(state: string): { tenantId: string; subdomain: string } | n
 }
 
 export async function GET(request: NextRequest) {
+  const gorgiasClientId = requireEnv("GORGIAS_CLIENT_ID");
+  const gorgiasClientSecret = requireEnv("GORGIAS_CLIENT_SECRET");
+  const oauthStateSecret = requireEnv("OAUTH_STATE_SECRET");
   const { searchParams } = request.nextUrl;
   const code  = searchParams.get("code");
   const state = searchParams.get("state");
@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Extrait et vérifie tenantId + subdomain
-  const verified = verifyState(state);
+  const verified = verifyState(state, oauthStateSecret);
   if (!verified) {
     return NextResponse.redirect(`${APP_URL}/integrations?error=gorgias_expired_state`);
   }
@@ -120,8 +120,8 @@ export async function GET(request: NextRequest) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         grant_type:    "authorization_code",
-        client_id:     GORGIAS_CLIENT_ID,
-        client_secret: GORGIAS_CLIENT_SECRET,
+        client_id:     gorgiasClientId,
+        client_secret: gorgiasClientSecret,
         code,
         redirect_uri:  redirectUri,
       }),

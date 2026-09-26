@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAuthApi } from "@/lib/auth";
 import { ScenarioInputSchema, serializeScenario } from "../route";
+import { canManageTenant } from "@/lib/security/roles";
 
 // ─── GET /api/settings/scenarios/[id] ─────────────────────────────────────────
 
@@ -14,7 +15,6 @@ export async function GET(
   if (!user) {
     return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
   }
-
   const { id } = await params;
   const tenantId = user.tenant.id;
 
@@ -39,6 +39,9 @@ export async function PUT(
   const user = await requireAuthApi();
   if (!user) {
     return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+  }
+  if (!canManageTenant(user.role)) {
+    return NextResponse.json({ error: "Droits administrateur requis" }, { status: 403 });
   }
 
   const { id } = await params;
@@ -206,6 +209,9 @@ export async function DELETE(
   const user = await requireAuthApi();
   if (!user) {
     return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+  }
+  if (!canManageTenant(user.role)) {
+    return NextResponse.json({ error: "Droits administrateur requis" }, { status: 403 });
   }
 
   const { id } = await params;

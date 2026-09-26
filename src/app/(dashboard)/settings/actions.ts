@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { Prisma } from "@prisma/client";
+import { canManageTenant } from "@/lib/security/roles";
 
 // ─── Informations entreprise ──────────────────────────────────────────────────
 
@@ -23,6 +24,7 @@ export async function updateCompanyInfo(
   formData: FormData
 ): Promise<{ success?: boolean; error?: string }> {
   const user = await requireAuth();
+  if (!canManageTenant(user.role)) return { error: "Droits administrateur requis." };
 
   const raw = {
     name: (formData.get("name") as string)?.trim() ?? "",
@@ -61,6 +63,7 @@ export async function updateWinbackSettings(
   formData: FormData
 ): Promise<{ success?: boolean; error?: string }> {
   const user = await requireAuth();
+  if (!canManageTenant(user.role)) return { error: "Droits administrateur requis." };
 
   const parsed = WinbackSchema.safeParse({
     churnThreshold: formData.get("churnThreshold"),

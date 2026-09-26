@@ -2,45 +2,72 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   customerFindUnique: vi.fn(),
-  customerUpdate: vi.fn(),
+  transaction: vi.fn(),
+  customerUpdateMany: vi.fn(),
   auditCreate: vi.fn(),
+  redirect: vi.fn(() => {
+    throw new Error("NEXT_REDIRECT");
+  }),
 }));
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
-    customer: {
-      findUnique: mocks.customerFindUnique,
-      update: mocks.customerUpdate,
-    },
-    auditLog: { create: mocks.auditCreate },
+    customer: { findUnique: mocks.customerFindUnique },
+    $transaction: mocks.transaction,
   },
 }));
+vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
 
 import OptOutPage from "@/app/optout/[token]/page";
+import { confirmOptOut } from "@/app/optout/[token]/actions";
+
+const validToken = "a".repeat(64);
 
 beforeEach(() => {
   for (const mock of Object.values(mocks)) mock.mockReset();
-  mocks.customerUpdate.mockResolvedValue({});
+  mocks.redirect.mockImplementation(() => {
+    throw new Error("NEXT_REDIRECT");
+  });
+  mocks.customerUpdateMany.mockResolvedValue({ count: 1 });
   mocks.auditCreate.mockResolvedValue({});
+  mocks.transaction.mockImplementation(async (callback) =>
+    callback({
+      customer: { updateMany: mocks.customerUpdateMany },
+      auditLog: { create: mocks.auditCreate },
+    }),
+  );
 });
 
-describe("current opt-out GET behavior", () => {
-  it("documents that merely rendering a valid GET link immediately unsubscribes the customer", async () => {
+describe("confirmed opt-out flow", () => {
+  it("renders a confirmation page without mutating data on GET", async () => {
+    mocks.customerFindUnique.mockResolvedValue({ optedOutAt: null });
+
+    const page = await OptOutPage({
+      params: Promise.resolve({ token: validToken }),
+      searchParams: Promise.resolve({}),
+    });
+
+    expect(page).toBeTruthy();
+    expect(mocks.customerFindUnique).toHaveBeenCalledWith({
+      where: { optOutToken: validToken },
+      select: { optedOutAt: true },
+    });
+    expect(mocks.transaction).not.toHaveBeenCalled();
+  });
+
+  it("unsubscribes atomically only after the confirmation POST", async () => {
     mocks.customerFindUnique.mockResolvedValue({
       id: "customer-a",
       tenantId: "tenant-a",
       optedOutAt: null,
     });
+    const form = new FormData();
+    form.set("token", validToken);
 
-    const page = await OptOutPage({ params: Promise.resolve({ token: "valid-token" }) });
+    await expect(confirmOptOut(form)).rejects.toThrow("NEXT_REDIRECT");
 
-    expect(page).toBeTruthy();
-    expect(mocks.customerFindUnique).toHaveBeenCalledWith({
-      where: { optOutToken: "valid-token" },
-      select: { id: true, tenantId: true, optedOutAt: true },
-    });
-    expect(mocks.customerUpdate).toHaveBeenCalledWith({
-      where: { id: "customer-a" },
+    expect(mocks.customerUpdateMany).toHaveBeenCalledWith({
+      where: { id: "customer-a", optedOutAt: null },
       data: {
         optedOutAt: expect.any(Date),
         cooldownUntil: expect.any(Date),
@@ -51,22 +78,25 @@ describe("current opt-out GET behavior", () => {
         data: expect.objectContaining({
           tenantId: "tenant-a",
           action: "CUSTOMER_OPTED_OUT",
-          entityId: "customer-a",
+          details: { source: "OPT_OUT_CONFIRMATION" },
         }),
       }),
     );
+    expect(mocks.redirect).toHaveBeenCalledWith(`/optout/${validToken}?confirmed=1`);
   });
 
-  it("keeps repeat GET requests idempotent after the customer is opted out", async () => {
+  it("does not write a second audit entry when a concurrent confirmation already won", async () => {
     mocks.customerFindUnique.mockResolvedValue({
       id: "customer-a",
       tenantId: "tenant-a",
-      optedOutAt: new Date("2026-01-01T00:00:00Z"),
+      optedOutAt: null,
     });
+    mocks.customerUpdateMany.mockResolvedValue({ count: 0 });
+    const form = new FormData();
+    form.set("token", validToken);
 
-    await OptOutPage({ params: Promise.resolve({ token: "valid-token" }) });
+    await expect(confirmOptOut(form)).rejects.toThrow("NEXT_REDIRECT");
 
-    expect(mocks.customerUpdate).not.toHaveBeenCalled();
     expect(mocks.auditCreate).not.toHaveBeenCalled();
   });
 });

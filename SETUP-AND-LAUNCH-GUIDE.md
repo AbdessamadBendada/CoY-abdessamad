@@ -27,12 +27,12 @@ Use only fake customers, development stores, test email addresses, test phone nu
 | Mistral AI | Churn scoring, timing, message generation and moderation | Required for AI workflows | Create at <https://console.mistral.ai>; API key with billing/limits enabled |
 | Brevo | Transactional email, SMS and email delivery/open/click/unsubscribe events | Required before sending | Create at <https://app.brevo.com>; API key, verified email sender/domain, SMS sender and webhook |
 | Shopify Dev Dashboard | OAuth installation and order/customer webhooks | Required only if Shopify is offered | Create an app at <https://dev.shopify.com/dashboard>; client ID and secret |
-| Gorgias developer app | OAuth and support-ticket webhooks | Required by the current build and when Gorgias is offered | Create a developer app through Gorgias; client ID and secret |
+| Gorgias developer app | OAuth and support-ticket webhooks | Required only when Gorgias is offered; blank credentials no longer break the build | Create a developer app through Gorgias; client ID and secret |
 | Langfuse EU | Traces Mistral calls | Optional, recommended in staging/production | Create at <https://cloud.langfuse.com>; public key, secret key and EU base URL |
 | Upstash Redis | Distributed rate limiting helper | Optional | Create at <https://console.upstash.com>; REST URL and token |
 | Crisp plugin credentials | Deferred chat integration | Optional and hidden in the current UI | Plugin identifier and key; leave blank unless a developer re-enables Crisp |
 
-No Supabase service-role key, Stripe publishable key, Anthropic key, n8n instance, separate worker server or local Redis process is used by the final code.
+No Stripe publishable key, Anthropic key, n8n instance, separate worker server or local Redis process is used by the final code. A server-only Supabase service-role key is required solely to remove a newly created Auth user when registration cannot create its tenant record.
 
 ## 2. Exact environment variables
 
@@ -45,10 +45,11 @@ Copy `.env.example`; it contains only variables used by application code, framew
 | `NEXT_PUBLIC_APP_URL` | Canonical origin used in OAuth callbacks, Stripe redirects, unsubscribe links, emails and internal job HTTP calls. Set it to `http://localhost:3000` locally and the fixed HTTPS origin in staging/production. | Required everywhere. It is public and embedded at build time. No trailing slash. |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase Dashboard → Project Settings → API → Project URL. | Required everywhere. Use a different Supabase project in local/staging/production. Public value. |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase Dashboard → Project Settings → API → anon/publishable key. | Required everywhere. Use the key belonging to that environment's project. Public by design. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase Dashboard → Project Settings → API Keys → service role/secret key. It is used only by server-side registration rollback when tenant creation fails after Auth signup. | Required wherever registration is enabled. **Server-only secret:** never prefix with `NEXT_PUBLIC_`, expose to the browser, or place in Trigger.dev unless a task explicitly needs it. Different per Supabase project/environment. |
 | `DATABASE_URL` | Prisma request connection. Copy Supabase's transaction pooler URL on port `6543` and append `?pgbouncer=true` (or `&pgbouncer=true`). | Required everywhere. Secret. Different database and password in each environment. |
 | `DIRECT_URL` | Jobs and Prisma's direct/session connection. Copy Supabase's session pooler URL on port `5432`; direct IPv6 URL also works where reachable. | Required everywhere. Secret. Different per environment. Trigger.dev must receive it too. |
 | `ENCRYPTION_KEY` | AES-256-GCM encryption for stored integration credentials. Generate with `openssl rand -hex 32`. | Required wherever integrations are connected. **Never change it after credentials have been stored** unless a migration re-encrypts them. Unique per environment. |
-| `OAUTH_STATE_SECRET` | Signs Shopify and Gorgias OAuth state. Generate with `openssl rand -hex 32`. | Required for build/OAuth. Secret and unique per environment. |
+| `OAUTH_STATE_SECRET` | Signs Shopify and Gorgias OAuth state. Generate with `openssl rand -hex 32`. | Required when OAuth integrations are used. Secret and unique per environment. |
 | `SCORING_API_KEY` | Bearer credential used by background jobs to call `/api/v1/actions/generate` and `/api/v1/scoring`. Generate with `openssl rand -hex 32`. | Required for automated scoring/action generation. Same value in Vercel and Trigger.dev for one environment; different between environments. |
 | `CRON_SECRET` | Bearer credential for manual `/api/cron/*` endpoints. Generate with `openssl rand -hex 32`. | Required if manual cron endpoints are used. Secret and unique per environment. |
 | `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` | Next.js Server Actions encryption key. Generate with `openssl rand -base64 32`. | Required for stable multi-instance deployments. Secret and unique per environment. Keep stable across all instances of one environment. |
@@ -78,8 +79,8 @@ Do not set `NODE_ENV`; Next.js sets it. Vercel injects `VERCEL_DEPLOYMENT_ID` wh
 |---|---|---|
 | `SHOPIFY_CLIENT_ID` | Shopify app Credentials page. | Required to offer Shopify. Use separate development/staging and production apps. |
 | `SHOPIFY_CLIENT_SECRET` | Shopify app secret; also verifies Shopify webhooks. | Required to offer Shopify. Secret and environment-specific. |
-| `GORGIAS_CLIENT_ID` | Gorgias OAuth app credentials. | Required by the current build and for Gorgias OAuth. Use separate test/production apps. |
-| `GORGIAS_CLIENT_SECRET` | Gorgias OAuth token exchange. | Required by the current build. Secret and environment-specific. |
+| `GORGIAS_CLIENT_ID` | Gorgias OAuth app credentials. | Required for Gorgias OAuth; optional if Gorgias is not offered. Use separate test/production apps. |
+| `GORGIAS_CLIENT_SECRET` | Gorgias OAuth token exchange. | Required for Gorgias OAuth; optional otherwise. Secret and environment-specific. |
 | `TRIGGER_PROJECT_REF` | Trigger.dev Project Settings → Project ref (`proj_...`). | Required for tasks. A project may contain DEV/STAGING/PROD environments. |
 | `TRIGGER_SECRET_KEY` | Trigger.dev environment API key / CLI authentication. | Required for local dev/deploy. Use the key for the selected environment; never reuse PROD locally. |
 | `UPSTASH_REDIS_REST_URL` | Upstash database REST URL. | Optional; set with its token. |
@@ -107,10 +108,10 @@ The final command must start with `v24.`. If `nvm` is not installed, install Nod
 ### Step 2 — enter the project
 
 ```bash
-cd "/path/to/coy-developer-eval-main"
+cd "/path/to/coy-refactored"
 ```
 
-Run `pwd` and confirm it ends in `coy-developer-eval-main`.
+Run `pwd` and confirm it ends in `coy-refactored`. This is the new project; do not run setup commands in the recovered original folder.
 
 ### Step 3 — install the locked dependencies
 
@@ -143,9 +144,10 @@ They correspond to `ENCRYPTION_KEY`, `OAUTH_STATE_SECRET`, `SCORING_API_KEY`, `C
 1. In Supabase, create a project clearly named `coy-development`.
 2. Save its database password in the team's password manager.
 3. Open Project Settings → API. Copy Project URL and anon/publishable key into `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
-4. Click **Connect**. Copy the transaction pooler URI (port 6543) into `DATABASE_URL`; ensure it has `pgbouncer=true`.
-5. Copy the session pooler URI (port 5432) into `DIRECT_URL`. Use the displayed host and username; do not construct them by hand. Percent-encode reserved characters in the password.
-6. Configure authentication using section 5 below.
+4. From the same API Keys page, copy the environment's service-role/secret key into `SUPABASE_SERVICE_ROLE_KEY`. Store it only in `.env.local` locally and server-side Vercel secrets when hosted. Never expose it to browser code.
+5. Click **Connect**. Copy the transaction pooler URI (port 6543) into `DATABASE_URL`; ensure it has `pgbouncer=true`.
+6. Copy the session pooler URI (port 5432) into `DIRECT_URL`. Use the displayed host and username; do not construct them by hand. Percent-encode reserved characters in the password.
+7. Configure authentication using section 5 below.
 
 ### Step 6 — apply existing migrations
 
@@ -272,7 +274,7 @@ The current app is a standalone/API-style app using Shopify's authorization-code
 1. In the Shopify Dev Dashboard, create an app and a development store.
 2. Set the App URL to the environment origin, for example `https://staging.example.com`.
 3. Add the allowed redirect URL `https://staging.example.com/api/shopify/oauth/callback`.
-4. Configure the exact scopes requested by code: `read_orders,read_customers,write_customers,read_products,read_returns`.
+4. Configure the exact least-privilege scopes requested by code: `read_orders,read_customers`.
 5. Copy the client ID to `SHOPIFY_CLIENT_ID` and secret to `SHOPIFY_CLIENT_SECRET` in Vercel and Trigger.dev for that environment.
 6. Ensure `NEXT_PUBLIC_APP_URL` is the same origin. Redeploy after changing it.
 
@@ -507,6 +509,7 @@ Every staging secret must differ from production. Test new migrations on a recen
 - [ ] Separate production Supabase project created; backups and restore procedure verified
 - [ ] Production migrations applied with `prisma migrate deploy`
 - [ ] Signup, confirmation, login, reset and logout work
+- [ ] Server-only `SUPABASE_SERVICE_ROLE_KEY` configured and registration rollback tested in development
 - [ ] RBAC tested with OWNER, ADMIN and MEMBER accounts
 - [ ] Tenant isolation tested with two synthetic tenants
 - [ ] Production domain and HTTPS connected; `NEXT_PUBLIC_APP_URL` matches it
@@ -547,7 +550,7 @@ Perform this in staging with two synthetic tenants, a Shopify development store 
 9. **Review the action before sending.** Expected: safe content, correct controlled recipient, unsubscribe link for email, and no real PII. Cancel if anything is unexpected.
 10. **Send/schedule to the controlled inbox.** Expected: Brevo accepts it and Action becomes SENT; for scheduled actions, run `send-scheduled` or wait for the hourly schedule. If FAILED, inspect `failureReason`, Brevo logs/key/sender and quotas.
 11. **Open and click the message.** Expected: Brevo webhook changes action to OPENED/CLICKED. If not, compare `message-id`, webhook URL secret and subscribed Brevo events.
-12. **Test opt-out.** Open the message's opt-out link. Expected: confirmation page and `customers.optedOutAt`; a second send must be rejected/cancelled. Do not claim SMS compliance from this test.
+12. **Test opt-out.** Open the email opt-out link. Expected: the confirmation page appears and `customers.optedOutAt` remains empty. Click **Me désinscrire**; only then should `optedOutAt` be set and a second send be rejected/cancelled.
 13. **Verify attribution.** Create another test order after the sent action. Expected: applicable attribution logic marks conversion/ROI. If not, inspect order email match, timestamps and webhook processing logs.
 14. **Verify isolation/RBAC.** Tenant B must not see A's customer/action; MEMBER must not perform OWNER/ADMIN send/configuration actions. Any leak is a release blocker.
 15. **Verify failure visibility.** In staging only, temporarily use an invalid Brevo key for a controlled action, observe FAILED and logs, restore the key and test retry. Never do this in production.
@@ -558,7 +561,7 @@ Perform this in staging with two synthetic tenants, a Shopify development store 
 ### The app/build says an environment variable is missing
 
 - Compare `.env.local` with `.env.example`; no spaces around `=`.
-- Gorgias variables and `OAUTH_STATE_SECRET` are read when route modules load, so blank Gorgias values can break a build.
+- Gorgias values are checked when its OAuth routes are used, not during build. A Gorgias connection still fails until `GORGIAS_CLIENT_ID`, `GORGIAS_CLIENT_SECRET` and `OAUTH_STATE_SECRET` are set.
 - Restart `npm run dev` after changes. Redeploy Vercel after hosted changes; `NEXT_PUBLIC_*` values are fixed at build time.
 
 ### Prisma cannot connect or migrations see no `DATABASE_URL`
@@ -570,8 +573,9 @@ Perform this in staging with two synthetic tenants, a Shopify development store 
 
 ### Signup works in Supabase but CoY reports account creation failed
 
-- The Auth user may have been created before Prisma failed. Inspect Supabase Auth plus Vercel logs/database.
-- Fix database connectivity, remove only the synthetic orphan Auth user, then retry. Do not delete a real account casually.
+- CoY now attempts to delete the just-created Auth user automatically if Prisma cannot create the tenant. Inspect Supabase Auth, Vercel logs and the database to confirm the rollback succeeded.
+- If the UI/log reports `REGISTRATION_RECOVERY_REQUIRED`, do not retry repeatedly: a technical operator must inspect that synthetic/user record, repair connectivity and remove only the incomplete Auth user after verifying no tenant exists. Never delete a real account casually.
+- If registration is unavailable before Auth signup, verify the server-only `SUPABASE_SERVICE_ROLE_KEY` belongs to the same Supabase project as `NEXT_PUBLIC_SUPABASE_URL`.
 
 ### Shopify will not connect
 

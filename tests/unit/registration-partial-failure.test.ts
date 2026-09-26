@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   signUp: vi.fn(),
+  deleteUser: vi.fn(),
+  createAdminClient: vi.fn(),
   tenantCreate: vi.fn(),
   revalidatePath: vi.fn(),
   redirect: vi.fn(),
@@ -13,6 +15,9 @@ vi.mock("@/lib/supabase/server", () => ({
       signUp: mocks.signUp,
     },
   }),
+}));
+vi.mock("@/lib/supabase/admin", () => ({
+  createSupabaseAdminClient: mocks.createAdminClient,
 }));
 vi.mock("@/lib/prisma", () => ({
   prisma: {
@@ -40,9 +45,27 @@ beforeEach(() => {
   vi.spyOn(console, "error").mockImplementation(() => {});
   for (const mock of Object.values(mocks)) mock.mockReset();
   process.env.NEXT_PUBLIC_APP_URL = "http://localhost:3000";
+  mocks.createAdminClient.mockReturnValue({
+    auth: { admin: { deleteUser: mocks.deleteUser } },
+  });
+  mocks.deleteUser.mockResolvedValue({ error: null });
 });
 
-describe("registration partial failure baseline", () => {
+describe("registration failure recovery", () => {
+  it("fails closed before Supabase signup when rollback credentials are unavailable", async () => {
+    mocks.createAdminClient.mockImplementation(() => {
+      throw new Error("missing service role");
+    });
+
+    const result = await register(validRegistrationForm());
+
+    expect(result).toEqual({
+      error: "L'inscription est temporairement indisponible. Veuillez réessayer plus tard.",
+    });
+    expect(mocks.signUp).not.toHaveBeenCalled();
+    expect(mocks.tenantCreate).not.toHaveBeenCalled();
+  });
+
   it("creates the tenant, OWNER user and monthly quota in one nested database write", async () => {
     mocks.signUp.mockResolvedValue({
       data: { user: { id: "auth-user-1" } },
@@ -72,7 +95,7 @@ describe("registration partial failure baseline", () => {
     });
   });
 
-  it("documents the orphaned Supabase user risk when tenant creation fails", async () => {
+  it("rolls back the Supabase user when tenant creation fails", async () => {
     mocks.signUp.mockResolvedValue({
       data: { user: { id: "auth-user-created-first" } },
       error: null,
@@ -83,10 +106,25 @@ describe("registration partial failure baseline", () => {
 
     expect(mocks.signUp).toHaveBeenCalledOnce();
     expect(mocks.tenantCreate).toHaveBeenCalledOnce();
+    expect(mocks.deleteUser).toHaveBeenCalledWith("auth-user-created-first");
     expect(result).toEqual({
       error: "Erreur lors de la création du compte. Veuillez réessayer.",
     });
-    // The current server client has no admin-delete compensation path here.
-    // Phase 1 captures this behavior; a later phase must design the recovery.
+  });
+
+  it("returns an explicit recovery code when Auth rollback also fails", async () => {
+    mocks.signUp.mockResolvedValue({
+      data: { user: { id: "auth-user-needs-recovery" } },
+      error: null,
+    });
+    mocks.tenantCreate.mockRejectedValue(new Error("database unavailable"));
+    mocks.deleteUser.mockResolvedValue({ error: new Error("admin API unavailable") });
+
+    const result = await register(validRegistrationForm());
+
+    expect(result).toEqual({
+      error: "Le compte n'a pas pu être finalisé. Contactez le support avant de réessayer.",
+      code: "REGISTRATION_RECOVERY_REQUIRED",
+    });
   });
 });

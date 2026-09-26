@@ -9,6 +9,7 @@ import { sanitizeEmailHtml } from "@/lib/utils/sanitize-email-html";
 import { toValidTone, toValidCompensationType } from "@/types/scenarios";
 import { PLAN_PSYCH_TRIGGERS } from "@/config/psych-triggers";
 import { SECTOR_MODE, SECTOR_SPORT, SECTOR_DECORATION, SECTOR_AUTRE } from "@/config/sectors";
+import { canManageTenant } from "@/lib/security/roles";
 
 // Rate limit: 5 previews/hour/tenant — stored in QuotaUsage DB (atomically)
 // period format: "preview:YYYY-MM-DDTHH" — cannot collide with business periods
@@ -64,6 +65,9 @@ export async function POST(request: NextRequest) {
   const user = await requireAuthApi();
   if (!user) {
     return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+  }
+  if (!canManageTenant(user.role)) {
+    return NextResponse.json({ error: "Droits administrateur requis" }, { status: 403 });
   }
 
   const tenantId = user.tenant.id;
