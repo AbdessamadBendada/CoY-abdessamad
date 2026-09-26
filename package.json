@@ -16,6 +16,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:integration": "tsx scripts/run-integration-tests.ts",
+    "test:e2e": "playwright test",
     "test:watch": "vitest",
     "verify:staging": "NODE_ENV=staging tsx scripts/verify-staging.ts",
     "stripe:setup": "tsx scripts/stripe-setup.ts",
@@ -24,7 +25,7 @@
   },
   "dependencies": {
     "@mistralai/mistralai": "^2.2.1",
-    "@prisma/client": "^6.19.2",
+    "@prisma/client": "^6.19.3",
     "@sentry/nextjs": "^11.0.0",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.98.0",
@@ -41,7 +42,7 @@
     "next": "^16.2.3",
     "next-themes": "^0.4.6",
     "pg": "^8.19.0",
-    "prisma": "^6.19.2",
+    "prisma": "^6.19.3",
     "radix-ui": "^1.4.3",
     "react": "19.2.3",
     "react-dom": "19.2.3",
@@ -70,6 +71,7 @@
   },
   "devDependencies": {
     "@next/bundle-analyzer": "^16.1.6",
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@trigger.dev/build": "^4.4.2",
     "@types/node": "^24.19.0",
