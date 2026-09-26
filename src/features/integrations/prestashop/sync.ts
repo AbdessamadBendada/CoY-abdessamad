@@ -6,6 +6,8 @@ import {
   type PrestaShopCustomer,
 } from "@/features/integrations/prestashop/process-order";
 import { populateBetaMetricsBaseline } from "@/features/analytics/beta-metrics";
+import { validateOutboundHttpsUrl } from "@/shared/security/outbound-url";
+import { backgroundProcessing } from "@/shared/config/background-processing";
 
 // ─── Types API PrestaShop Webservice ─────────────────────────────────────────
 
@@ -36,15 +38,6 @@ interface PSCustomerResponse {
 
 // ─── Validation URL boutique ─────────────────────────────────────────────────
 
-function isValidShopUrl(url: string): boolean {
-  try {
-    const parsed = new URL(url);
-    return parsed.protocol === "https:" && !parsed.hash && parsed.hostname.includes(".");
-  } catch {
-    return false;
-  }
-}
-
 // ─── runSyncPrestaShop ───────────────────────────────────────────────────────
 //
 // Polling cron (30 min) — synchro initiale + filet de sécurité pour les
@@ -68,15 +61,20 @@ export async function runSyncPrestaShop(): Promise<{ synced: number; errors: num
       if (!config.api_key || !config.shop_domain) continue;
 
       const apiKey = decrypt(config.api_key);
-      const shopDomain = config.shop_domain.replace(/\/$/, "");
-
-      if (!isValidShopUrl(shopDomain)) {
-        console.error(`[sync-prestashop] URL boutique invalide pour intégration ${integration.id}: ${shopDomain}`);
+      let shopDomain: string;
+      try {
+        shopDomain = (await validateOutboundHttpsUrl(config.shop_domain)).toString().replace(/\/$/, "");
+      } catch {
+        console.error(`[sync-prestashop] URL boutique invalide pour intégration ${integration.id}`);
         continue;
       }
 
-      // since = lastSyncAt ou maintenant - 30 minutes (premier run)
-      const since = integration.lastSyncAt ?? new Date(now.getTime() - 30 * 60 * 1000);
+      // A new connection must receive history before the incremental 30-minute
+      // polling window begins. Store-specific retention still limits availability.
+      const initialBackfill = integration.backfillStatus !== "COMPLETED";
+      const since = initialBackfill
+        ? new Date(now.getTime() - backgroundProcessing.integrationBackfillDays * 86_400_000)
+        : integration.lastSyncAt ?? new Date(now.getTime() - 30 * 60 * 1000);
       const sinceStr = since.toISOString().slice(0, 19).replace("T", " ");
 
       // Autorisation Basic : base64(apiKey:)
@@ -165,7 +163,9 @@ export async function runSyncPrestaShop(): Promise<{ synced: number; errors: num
       // Mettre à jour lastSyncAt
       await prisma.integration.update({
         where: { id: integration.id },
-        data: { lastSyncAt: now },
+        data: { lastSyncAt: now, backfillStatus: initialBackfill ? "COMPLETED" : undefined,
+          backfillPhase: initialBackfill ? null : undefined, backfillCompletedAt: initialBackfill ? now : undefined,
+          backfillOrdersImported: initialBackfill ? { increment: totalSynced } : undefined },
       });
     }
 

@@ -10,7 +10,7 @@ import { processScoringCustomer } from "@/features/scoring/queue";
 const customer = {
   id: "customer-a", tenantId: "tenant-a", firstName: "Ada", lastName: "Lovelace", ltv: 100,
   totalOrders: 2, totalSpent: 100, lastOrderAt: new Date("2026-09-20"), churnScore: null,
-  averageBasket: 50, createdAt: new Date("2026-01-01"), scoringAttempts: 0, tenant: { sector: "ECOMMERCE" },
+  averageBasket: 50, createdAt: new Date("2026-01-01"), scoringAttempts: 1, tenant: { sector: "ECOMMERCE" },
 };
 
 describe("scoring worker claim and retry safety", () => {
@@ -39,5 +39,19 @@ describe("scoring worker claim and retry safety", () => {
       scoringClaimedAt: null,
       scoringNextAttemptAt: new Date("2026-09-26T12:01:00Z"),
     }));
+  });
+
+  it.each([
+    [1, "retrying", "2026-09-26T12:01:00.000Z"],
+    [2, "retrying", "2026-09-26T12:02:00.000Z"],
+    [3, "retrying", "2026-09-26T12:04:00.000Z"],
+    [5, "failed", "2026-10-03T12:00:00.000Z"],
+  ] as const)("uses persisted attempt %i for retry accounting", async (scoringAttempts, expected, retryAt) => {
+    const updateMany = vi.fn().mockResolvedValueOnce({ count: 1 }).mockResolvedValueOnce({ count: 1 });
+    const prisma = { customer: { updateMany, findFirst: vi.fn().mockResolvedValue({ ...customer, scoringAttempts }) } };
+    mocks.scoreConversation.mockRejectedValue(new Error("Mistral 429 rate limit"));
+    const now = new Date("2026-09-26T12:00:00Z");
+    await expect(processScoringCustomer(prisma as never, { customerId: "customer-a", tenantId: "tenant-a" }, now)).resolves.toBe(expected);
+    expect(updateMany.mock.calls[1][0].data.scoringNextAttemptAt).toEqual(new Date(retryAt));
   });
 });

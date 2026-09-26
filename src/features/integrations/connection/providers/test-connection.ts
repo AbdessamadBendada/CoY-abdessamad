@@ -91,7 +91,8 @@ export async function testPrestaShop(
   // Normalise l'URL (ajoute https:// si absent, retire le slash final)
   let baseUrl = shopDomain.trim();
   if (!baseUrl.startsWith("http")) baseUrl = `https://${baseUrl}`;
-  baseUrl = baseUrl.replace(/\/$/, "");
+  try { baseUrl = (await validateOutboundHttpsUrl(baseUrl)).toString().replace(/\/$/, ""); }
+  catch { return { ok: false, error: "URL boutique invalide ou non publique." }; }
 
   try {
     const credentials = Buffer.from(`${apiKey}:`).toString("base64");
@@ -132,7 +133,8 @@ export async function testWooCommerce(
 ): Promise<TestConnectionResult> {
   let baseUrl = siteUrl.trim();
   if (!baseUrl.startsWith("http")) baseUrl = `https://${baseUrl}`;
-  baseUrl = baseUrl.replace(/\/$/, "");
+  try { baseUrl = (await validateOutboundHttpsUrl(baseUrl)).toString().replace(/\/$/, ""); }
+  catch { return { ok: false, error: "URL boutique invalide ou non publique." }; }
 
   try {
     const credentials = Buffer.from(`${consumerKey}:${consumerSecret}`).toString("base64");
@@ -200,3 +202,4 @@ export async function testCrisp(websiteId: string): Promise<TestConnectionResult
     return { ok: false, error: `Impossible de contacter Crisp : ${message}` };
   }
 }
+import { validateOutboundHttpsUrl } from "@/shared/security/outbound-url";

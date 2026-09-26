@@ -7,6 +7,9 @@ import { createClient } from "@/shared/auth/supabase/server";
 import { createSupabaseAdminClient } from "@/shared/auth/supabase/admin";
 import { prisma } from "@/shared/db/prisma";
 import { SECTORS } from "@/config/sectors";
+import { isAuthRateLimited } from "@/shared/utils/rate-limit";
+
+const AUTH_LIMIT_MESSAGE = "Trop de tentatives. Veuillez réessayer dans quelques minutes.";
 
 // ─── LOGIN ────────────────────────────────────────────
 export async function login(formData: FormData) {
@@ -18,6 +21,7 @@ export async function login(formData: FormData) {
   if (!email || !password) {
     return { error: "Veuillez remplir tous les champs." };
   }
+  if (await isAuthRateLimited(`login:${email}`)) return { error: AUTH_LIMIT_MESSAGE };
 
   const { error } = await supabase.auth.signInWithPassword({
     email,
@@ -66,6 +70,7 @@ export async function register(formData: FormData) {
   if (!email || !password || !companyName) {
     return { error: "Veuillez remplir tous les champs obligatoires." };
   }
+  if (await isAuthRateLimited(`register:${email}`)) return { error: AUTH_LIMIT_MESSAGE };
 
   if (!gdprConsent) {
     return { error: "Vous devez accepter les CGV et la politique de confidentialité." };
@@ -106,9 +111,8 @@ export async function register(formData: FormData) {
   });
 
   if (authError) {
-    if (authError.message.includes("already registered")) {
-      return { error: "Un compte existe déjà avec cet email." };
-    }
+    // Deliberately neutral: registration must not disclose account existence.
+    if (authError.message.includes("already registered")) return { success: true, message: "Vérifiez votre email pour continuer." };
     return { error: "Erreur lors de l'inscription. Veuillez réessayer." };
   }
 
@@ -188,6 +192,9 @@ export async function forgotPassword(formData: FormData) {
   if (!email) {
     return { error: "Veuillez saisir votre adresse email." };
   }
+  if (await isAuthRateLimited(`reset:${email}`)) {
+    return { success: true, message: "Si un compte existe avec cet email, vous recevrez un lien de réinitialisation." };
+  }
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/reset-password`,
@@ -244,6 +251,7 @@ export async function resendConfirmationEmail(formData: FormData) {
   if (!email) {
     return { error: "Veuillez saisir votre adresse email." };
   }
+  if (await isAuthRateLimited(`confirm:${email}`)) return { error: AUTH_LIMIT_MESSAGE };
 
   const { error } = await supabase.auth.resend({
     type: "signup",

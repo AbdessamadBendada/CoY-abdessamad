@@ -158,7 +158,9 @@ export async function processScoringCustomer(
     ]);
     return "scored";
   } catch (error) {
-    const attempts = customer.scoringAttempts + 1;
+    // The atomic claim above already incremented this value. Reading the
+    // claimed record gives the persisted attempt number (1 on first try).
+    const attempts = customer.scoringAttempts;
     const retrying = retryableAiError(error) && attempts < backgroundProcessing.scoringMaxAttempts;
     await prisma.customer.updateMany({
       where: { id: input.customerId, tenantId: input.tenantId, scoringClaimedAt: now },

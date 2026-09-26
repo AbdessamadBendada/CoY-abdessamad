@@ -8,10 +8,12 @@ import { headers } from "next/headers";
 
 const WINDOW_MS = 60_000;
 const MAX_REQUESTS = 5;
+const AUTH_MAX_REQUESTS = 8;
 
 const memStore = new Map<string, { count: number; reset: number }>();
 
 let ratelimit: Ratelimit | null = null;
+let authRatelimit: Ratelimit | null = null;
 if (
   process.env.UPSTASH_REDIS_REST_URL &&
   process.env.UPSTASH_REDIS_REST_TOKEN
@@ -20,6 +22,11 @@ if (
     redis: Redis.fromEnv(),
     limiter: Ratelimit.slidingWindow(MAX_REQUESTS, "60 s"),
     prefix: "winback:contact",
+  });
+  authRatelimit = new Ratelimit({
+    redis: Redis.fromEnv(),
+    limiter: Ratelimit.slidingWindow(AUTH_MAX_REQUESTS, "15 m"),
+    prefix: "winback:auth",
   });
 }
 
@@ -50,4 +57,18 @@ export async function isContactRateLimited(): Promise<boolean> {
   }
   rec.count += 1;
   return rec.count > MAX_REQUESTS;
+}
+
+/** Authentication remains available if Redis has a transient outage; Supabase
+ * still enforces its own abuse controls. Production configuration requires
+ * Upstash so this is an outage fallback, never the normal multi-instance path. */
+export async function isAuthRateLimited(identity: string): Promise<boolean> {
+  if (!authRatelimit) return false;
+  try {
+    const ip = await getClientIp();
+    const { success } = await authRatelimit.limit(`${ip}:${identity.trim().toLowerCase()}`);
+    return !success;
+  } catch {
+    return false;
+  }
 }

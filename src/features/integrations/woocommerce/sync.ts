@@ -5,17 +5,10 @@ import {
   type WooCommerceOrderPayload,
 } from "@/features/integrations/woocommerce/process-order";
 import { log, reportError } from "@/shared/observability/logger";
+import { validateOutboundHttpsUrl } from "@/shared/security/outbound-url";
+import { backgroundProcessing } from "@/shared/config/background-processing";
 
 // ─── Validation URL boutique ─────────────────────────────────────────────────
-
-function isValidShopUrl(url: string): boolean {
-  try {
-    const parsed = new URL(url);
-    return parsed.protocol === "https:" && !parsed.hash && parsed.hostname.includes(".");
-  } catch {
-    return false;
-  }
-}
 
 // ─── runSyncWooCommerce ──────────────────────────────────────────────────────
 //
@@ -39,8 +32,10 @@ export async function runSyncWooCommerce(): Promise<{ synced: number; errors: nu
       const config = (integration.config ?? {}) as Record<string, string>;
       if (!config.site_url || !config.consumer_key || !config.consumer_secret) continue;
 
-      const siteUrl = config.site_url.replace(/\/$/, "");
-      if (!isValidShopUrl(siteUrl)) {
+      let siteUrl: string;
+      try {
+        siteUrl = (await validateOutboundHttpsUrl(config.site_url)).toString().replace(/\/$/, "");
+      } catch {
         log("warn", "integration.woocommerce.invalid_url", { integrationId: integration.id, tenantId: integration.tenantId });
         continue;
       }
@@ -50,8 +45,12 @@ export async function runSyncWooCommerce(): Promise<{ synced: number; errors: nu
       const basicAuth = Buffer.from(`${consumerKey}:${consumerSecret}`).toString("base64");
       const headers = { Authorization: `Basic ${basicAuth}` };
 
-      // since = lastSyncAt ou maintenant - 30 minutes (premier run)
-      const since = integration.lastSyncAt ?? new Date(now.getTime() - 30 * 60 * 1000);
+      // First sync is an explicit bounded historical backfill, not a 30-minute
+      // lookback. Subsequent runs are incremental and remain paginated.
+      const initialBackfill = integration.backfillStatus !== "COMPLETED";
+      const since = initialBackfill
+        ? new Date(now.getTime() - backgroundProcessing.integrationBackfillDays * 86_400_000)
+        : integration.lastSyncAt ?? new Date(now.getTime() - 30 * 60 * 1000);
       const sinceIso = since.toISOString();
 
       // Pagination : fetch jusqu'à page vide
@@ -105,7 +104,9 @@ export async function runSyncWooCommerce(): Promise<{ synced: number; errors: nu
       // Mettre à jour lastSyncAt
       await prisma.integration.update({
         where: { id: integration.id },
-        data: { lastSyncAt: now },
+        data: { lastSyncAt: now, backfillStatus: initialBackfill ? "COMPLETED" : undefined,
+          backfillPhase: initialBackfill ? null : undefined, backfillCompletedAt: initialBackfill ? now : undefined,
+          backfillOrdersImported: initialBackfill ? { increment: totalSynced } : undefined },
       });
     }
 

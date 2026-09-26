@@ -16,6 +16,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "verify:staging": "NODE_ENV=staging tsx scripts/verify-staging.ts",
     "stripe:setup": "tsx scripts/stripe-setup.ts",
     "trigger:dev": "npx trigger.dev@latest dev",
     "trigger:deploy": "npx trigger.dev@latest deploy"

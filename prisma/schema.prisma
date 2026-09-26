@@ -129,6 +129,13 @@ model Integration {
   lastSyncAt      DateTime?
   lastErrorAt     DateTime?
   lastError       String?
+  backfillStatus  BackfillStatus @default(NOT_STARTED)
+  backfillPhase   String?
+  backfillCursor  String?
+  backfillStartedAt DateTime?
+  backfillCompletedAt DateTime?
+  backfillCustomersImported Int @default(0)
+  backfillOrdersImported Int @default(0)
   syncIntervalMs  Int?
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
@@ -139,6 +146,13 @@ model Integration {
   @@unique([tenantId, type])
   @@index([tenantId])
   @@map("integrations")
+}
+
+enum BackfillStatus {
+  NOT_STARTED
+  RUNNING
+  COMPLETED
+  FAILED
 }
 
 enum IntegrationType {

@@ -13,7 +13,9 @@ function requireEnv(name: string): string {
 }
 
 // Minimum scopes used by order/customer webhook processing.
-const SHOPIFY_SCOPES = "read_orders,read_customers";
+// read_all_orders is required for a useful first historical import (>60 days).
+// Shopify may require app approval for this scope before production use.
+const SHOPIFY_SCOPES = "read_orders,read_all_orders,read_customers";
 
 function isValidShopDomain(shop: string): boolean {
   return /^[a-zA-Z0-9][a-zA-Z0-9\-]*\.myshopify\.com$/.test(shop);

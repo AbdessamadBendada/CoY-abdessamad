@@ -13,7 +13,7 @@ CoY builds, has focused automated safety tests, serves every public route and ca
 - The repository now has focused integration-safety tests and Sentry-ready server error reporting, but not a full browser/end-to-end suite. The staging scenario below is still required.
 - `npm audit --omit=dev` still reports three high-severity findings in the Prisma/config toolchain (`prisma`, `@prisma/config`, `deepmerge-ts`). The directly exploitable Next.js and Trigger `ws` findings found during this review were patched in `package-lock.json`; the remaining Prisma fix offered by npm is a breaking forced change and needs a tested upstream-compatible upgrade.
 
-Use only fake customers, development stores, test email addresses, test phone numbers and Stripe test mode until these items have been resolved.
+Use only fake customers, development stores, test email addresses, test phone numbers and Stripe test mode until these items have been resolved. The final staged release procedure is in `LAUNCH-GATE.md`.
 
 ## 1. What the application needs
 

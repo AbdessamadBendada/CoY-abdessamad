@@ -28,6 +28,7 @@ export const backgroundProcessing = {
   rescoreDays: positiveInt("SCORING_RESCORE_DAYS", 7),
   activeOrderDays: positiveInt("SCORING_ACTIVE_ORDER_DAYS", 90),
   backlogAlertThreshold: positiveInt("BACKGROUND_BACKLOG_ALERT_THRESHOLD", 1_000),
+  integrationBackfillDays: positiveInt("INTEGRATION_BACKFILL_DAYS", 365),
 } as const;
 
 export function retryAt(attempt: number, now = new Date()): Date {
