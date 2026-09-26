@@ -7,6 +7,7 @@ import {
   parseShopifyPrivacyPayload,
   validateShopifyPrivacyHmac,
 } from "@/features/integrations/connection/providers/shopify-privacy";
+import { createPrivacyExport } from "@/features/privacy/export";
 
 export async function POST(request: NextRequest) {
   const rawBody = await request.text();
@@ -40,6 +41,10 @@ export async function POST(request: NextRequest) {
   });
 
   const requestId = payload.data_request?.id ? String(payload.data_request.id) : "non fourni";
+  const requestKey = `shopify:${integration.id}:${requestId}`;
+  const exportRecord = customer
+    ? await createPrivacyExport(prisma, integration.tenantId, customer.id, requestKey)
+    : null;
   await prisma.auditLog.create({
     data: {
       tenantId: integration.tenantId,
@@ -52,6 +57,7 @@ export async function POST(request: NextRequest) {
         orders: customer?._count.orders ?? 0,
         actions: customer?._count.actions ?? 0,
         conversations: customer?._count.conversations ?? 0,
+        privacyExportId: exportRecord?.id ?? null,
       },
     },
   });
@@ -69,7 +75,7 @@ export async function POST(request: NextRequest) {
       html: `<p>Une demande Shopify de consultation des données a été reçue et journalisée.</p>
         <p>Boutique : <strong>${escapeHtml(payload.shop_domain)}</strong><br>
         Correspondance CoY : <strong>${customer ? "oui" : "aucune donnée trouvée"}</strong></p>
-        <p>Traitez cette demande avec la procédure décrite dans le guide d'exploitation, dans le délai légal applicable. Aucun identifiant client n'est inclus dans cet email.</p>`,
+        <p>${exportRecord ? "Un export sécurisé a été préparé. Connectez-vous à CoY avec un compte OWNER/ADMIN pour le télécharger." : "Aucune donnée correspondante n'a été trouvée."}</p>`,
     });
   }
 

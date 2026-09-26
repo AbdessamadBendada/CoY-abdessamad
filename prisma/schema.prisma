@@ -51,6 +51,7 @@ model Tenant {
   auditLogs       AuditLog[]
   invoices        Invoice[]
   betaMetrics     BetaMetrics?
+  privacyExports  PrivacyExport[]
 
   @@map("tenants")
 }
@@ -215,6 +216,7 @@ model Customer {
   actions         WinbackAction[]
   csatResponses   CsatResponse[]
   orders          Order[]
+  privacyExports  PrivacyExport[]
 
   @@unique([tenantId, email])
   @@unique([tenantId, externalId])
@@ -226,6 +228,22 @@ model Customer {
   @@index([scoringNextAttemptAt])
   @@index([cooldownUntil])
   @@map("customers")
+}
+
+model PrivacyExport {
+  id          String   @id @default(cuid())
+  tenantId    String
+  customerId  String
+  requestKey  String   @unique
+  payload     Json
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  downloadedAt DateTime?
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  @@index([tenantId, customerId])
+  @@index([expiresAt])
+  @@map("privacy_exports")
 }
 
 enum ChurnRisk {
