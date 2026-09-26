@@ -19,6 +19,19 @@ const MAX_ACTIONS_PER_RUN = 30;
 const HARD_CAP_PERCENT = 50;    // aligné Zod ScenarioInputSchema (remise % max 50%)
 const HARD_CAP_FIXED_EUR = 500; // aligné Zod ScenarioInputSchema (compensationMaxEur max 500€)
 
+export function capScheduledPromoValue(
+  value: number | null,
+  type: "PERCENTAGE" | "FIXED" | "FREE_SHIPPING" | null,
+  scenarioMaxEur?: number,
+): number | null {
+  if (value == null) return value;
+  if (type === "PERCENTAGE") return Math.min(value, HARD_CAP_PERCENT);
+  if (type === "FIXED") {
+    return Math.min(value, scenarioMaxEur ?? HARD_CAP_FIXED_EUR, HARD_CAP_FIXED_EUR);
+  }
+  return value;
+}
+
 // ─── runSendScheduled ─────────────────────────────────────────────────────────
 //
 // Exécute les WinbackAction planifiées dont scheduledAt <= now.
@@ -295,14 +308,11 @@ export async function runSendScheduled(): Promise<{
     const scenarioMaxEur = scenario?.compensationMaxEur
       ? Number(scenario.compensationMaxEur)
       : undefined;
-    let cappedPromoValue = generated.promoValue;
-    if (cappedPromoValue != null) {
-      if (generated.promoType === "PERCENTAGE") {
-        cappedPromoValue = Math.min(cappedPromoValue, HARD_CAP_PERCENT);
-      } else if (generated.promoType === "FIXED") {
-        cappedPromoValue = Math.min(cappedPromoValue, scenarioMaxEur ?? HARD_CAP_FIXED_EUR, HARD_CAP_FIXED_EUR);
-      }
-    }
+    const cappedPromoValue = capScheduledPromoValue(
+      generated.promoValue,
+      generated.promoType,
+      scenarioMaxEur,
+    );
 
     // ── Re-lecture fraîche optedOutAt avant envoi ─────────────────────────
     // Le filtre WHERE de findMany n'est qu'un snapshot pris jusqu'à MAX_ACTIONS_PER_RUN × 8s

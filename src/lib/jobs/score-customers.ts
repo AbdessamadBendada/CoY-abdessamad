@@ -6,8 +6,8 @@ import type { Prisma } from "@prisma/client";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
-const BATCH_SIZE = 5;          // Max clients scorés par tenant par run
-const RESCORE_DAYS = 7;        // Re-scorer si dernier scoring > 7 jours
+export const BATCH_SIZE = 5;   // Max clients scorés par tenant par run
+export const RESCORE_DAYS = 7; // Re-scorer si dernier scoring > 7 jours
 const ACTIVE_ORDER_DAYS = 90;  // Ignorer les clients sans commande depuis 90j
 
 // ─── runScoreCustomers ────────────────────────────────────────────────────────
