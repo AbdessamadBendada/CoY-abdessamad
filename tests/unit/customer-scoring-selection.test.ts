@@ -1,68 +1,46 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { BATCH_SIZE, RESCORE_DAYS, dispatchScoreCustomers } from "@/lib/jobs/score-customers";
 
-const mocks = vi.hoisted(() => ({
-  tenantFindMany: vi.fn(),
-  customerFindMany: vi.fn(),
-  disconnect: vi.fn(),
-  scoreConversation: vi.fn(),
-  computeOrderVariables: vi.fn(),
-  computeServiceVariables: vi.fn(),
-}));
+function scoringPrisma(customersByTenant: Record<string, number>) {
+  return {
+    backgroundCursor: { findUnique: vi.fn().mockResolvedValue(null), upsert: vi.fn().mockResolvedValue({}) },
+    tenant: { findMany: vi.fn().mockResolvedValue(Object.keys(customersByTenant).map((id) => ({ id }))) },
+    customer: {
+      groupBy: vi.fn().mockResolvedValue([]),
+      findMany: vi.fn().mockImplementation(({ where, take }) => {
+        const tenantId = where.tenantId as string;
+        return Array.from({ length: Math.min(customersByTenant[tenantId], take) }, (_, index) => ({
+          id: `${tenantId}-${index + 1}`, tenantId, lastScoredAt: null,
+        }));
+      }),
+    },
+  };
+}
 
-vi.mock("@/lib/prisma", () => ({
-  createJobsClient: () => ({
-    tenant: { findMany: mocks.tenantFindMany },
-    customer: { findMany: mocks.customerFindMany },
-    $disconnect: mocks.disconnect,
-  }),
-}));
-vi.mock("@/lib/ai/agents", () => ({ scoreConversation: mocks.scoreConversation }));
-vi.mock("@/lib/customers/compute-order-variables", () => ({
-  computeOrderVariables: mocks.computeOrderVariables,
-}));
-vi.mock("@/lib/customers/compute-service-variables", () => ({
-  computeServiceVariables: mocks.computeServiceVariables,
-}));
-
-import { BATCH_SIZE, RESCORE_DAYS, runScoreCustomers } from "@/lib/jobs/score-customers";
-
-beforeEach(() => {
-  vi.spyOn(console, "log").mockImplementation(() => {});
-  for (const mock of Object.values(mocks)) mock.mockReset();
-  mocks.tenantFindMany.mockResolvedValue([{ id: "tenant-a", sector: "ECOMMERCE" }]);
-  mocks.customerFindMany.mockResolvedValue([]);
-  mocks.disconnect.mockResolvedValue(undefined);
-});
-
-describe("current customer scoring selection", () => {
-  it("locks the current BATCH_SIZE at 5", () => {
-    expect(BATCH_SIZE).toBe(5);
-  });
-
-  it("locks the current RESCORE_DAYS at 7", () => {
+describe("scalable customer scoring selection", () => {
+  it("keeps the seven-day rescore meaning but removes the five-customer daily cap", () => {
     expect(RESCORE_DAYS).toBe(7);
+    expect(BATCH_SIZE).toBeGreaterThan(5);
   });
 
-  it("selects at most five eligible customers per tenant and scopes the query", async () => {
-    const before = Date.now();
+  it("interleaves tenant work so a large tenant cannot occupy the worker queue", async () => {
+    const prisma = scoringPrisma({ "tenant-a": 20_000, "tenant-b": 800, "tenant-c": 5_000 });
+    const result = await dispatchScoreCustomers(prisma as never, new Date("2026-09-26T12:00:00Z"));
 
-    const result = await runScoreCustomers();
+    expect(result.candidates.length).toBe(30);
+    expect(result.candidates.slice(0, 9).map((candidate) => candidate.tenantId)).toEqual([
+      "tenant-a", "tenant-b", "tenant-c", "tenant-a", "tenant-b", "tenant-c", "tenant-a", "tenant-b", "tenant-c",
+    ]);
+  });
 
-    const after = Date.now();
-    expect(result).toEqual({ scored: 0, errors: 0 });
-    expect(mocks.tenantFindMany).toHaveBeenCalledWith({
-      where: { status: { in: ["ACTIVE", "TRIAL"] } },
-      select: { id: true, sector: true },
-    });
-    expect(mocks.customerFindMany).toHaveBeenCalledOnce();
-    const query = mocks.customerFindMany.mock.calls[0][0];
-    expect(query.take).toBe(5);
+  it("selects only eligible, unclaimed or expired-claim work", async () => {
+    const prisma = scoringPrisma({ "tenant-a": 1 });
+    await dispatchScoreCustomers(prisma as never, new Date("2026-09-26T12:00:00Z"));
+    const query = prisma.customer.findMany.mock.calls[0][0];
     expect(query.where.tenantId).toBe("tenant-a");
-
-    const cutoff = query.where.AND[0].OR[1].lastScoredAt.lt as Date;
-    const expectedMin = before - 7 * 24 * 60 * 60 * 1000;
-    const expectedMax = after - 7 * 24 * 60 * 60 * 1000;
-    expect(cutoff.getTime()).toBeGreaterThanOrEqual(expectedMin);
-    expect(cutoff.getTime()).toBeLessThanOrEqual(expectedMax);
+    expect(query.where.AND).toEqual(expect.arrayContaining([
+      expect.objectContaining({ OR: expect.arrayContaining([{ scoringNextAttemptAt: null }]) }),
+      expect.objectContaining({ OR: expect.arrayContaining([{ scoringClaimedAt: null }]) }),
+    ]));
   });
 });

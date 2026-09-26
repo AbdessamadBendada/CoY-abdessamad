@@ -39,17 +39,17 @@ describe("scheduled message claim safety", () => {
   it("selects only due SCHEDULED actions, so already processed actions are not resent", async () => {
     mocks.findMany.mockResolvedValue([]);
 
-    const result = await runSendScheduled();
+    const result = await runSendScheduled({ actionIds: ["action-1"] });
 
     expect(result).toEqual({ processed: 0, sent: 0, failed: 0, skipped: 0 });
     expect(mocks.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: {
+        where: expect.objectContaining({
+          id: { in: ["action-1"] },
           status: "SCHEDULED",
           scheduledAt: { lte: expect.any(Date) },
           customer: { optedOutAt: null },
-        },
-        take: 30,
+        }),
       }),
     );
     expect(mocks.sendEmail).not.toHaveBeenCalled();
@@ -60,11 +60,11 @@ describe("scheduled message claim safety", () => {
     mocks.findMany.mockResolvedValue([{ id: "action-1" }]);
     mocks.updateMany.mockResolvedValue({ count: 0 });
 
-    const result = await runSendScheduled();
+    const result = await runSendScheduled({ actionIds: ["action-1"] });
 
     expect(mocks.updateMany).toHaveBeenCalledWith({
-      where: { id: "action-1", status: "SCHEDULED" },
-      data: { status: "SENDING" },
+      where: expect.objectContaining({ id: "action-1", status: "SCHEDULED" }),
+      data: expect.objectContaining({ status: "SENDING", sendAttempts: { increment: 1 } }),
     });
     expect(result).toEqual({ processed: 1, sent: 0, failed: 0, skipped: 0 });
     expect(mocks.generateAction).not.toHaveBeenCalled();
@@ -76,7 +76,7 @@ describe("scheduled message claim safety", () => {
     mocks.findMany.mockResolvedValue([{ id: "action-1" }, { id: "action-1" }]);
     mocks.updateMany.mockResolvedValue({ count: 0 });
 
-    await runSendScheduled();
+    await runSendScheduled({ actionIds: ["action-1", "action-1"] });
 
     expect(mocks.updateMany).toHaveBeenCalledTimes(2);
     expect(mocks.sendEmail).not.toHaveBeenCalled();

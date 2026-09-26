@@ -92,6 +92,7 @@ Archiving or rotating may be correct, but it must have a written plan, backup an
 Every business day, a named operator should check:
 
 - Trigger.dev: the scheduled runs happened and show no unexplained error/failed counts;
+- Trigger.dev's `score-customers` and `send-scheduled` runs: each runs every five minutes, queues small fair batches for each shop, then shows separate worker runs. A growing number of queued/failed workers, or an old `oldestEligibleAt`/`oldestScheduledAt` value in a run log, needs technical attention;
 - CoY Actions: no growing list of FAILED or stuck SENDING/SCHEDULED actions;
 - CoY Integrations: connected stores show recent sync activity;
 - Stripe: webhook deliveries are successful and failed payments are handled;

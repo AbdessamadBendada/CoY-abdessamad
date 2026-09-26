@@ -89,7 +89,7 @@ describe("tenant isolation", () => {
     expect(response.status).toBe(422);
     expect(mocks.actionUpdateMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: "action-owned-by-b", tenantId: "tenant-a", status: "FAILED" },
+        where: expect.objectContaining({ id: "action-owned-by-b", tenantId: "tenant-a", status: "FAILED" }),
       }),
     );
   });

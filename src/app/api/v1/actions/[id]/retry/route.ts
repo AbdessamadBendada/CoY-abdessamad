@@ -23,7 +23,9 @@ export async function POST(
   // Atomic updateMany — IDOR (tenantId) + state guard (FAILED) in a single operation.
   // Eliminates TOCTOU window between findFirst + update.
   const result = await prisma.winbackAction.updateMany({
-    where: { id, tenantId, status: "FAILED" },
+    // Never reschedule an ambiguous provider outcome: a crash may have happened
+    // after Brevo accepted delivery but before the database was updated.
+    where: { id, tenantId, status: "FAILED", failureReason: { not: "DELIVERY_OUTCOME_UNKNOWN" } },
     data: {
       status: "SCHEDULED",
       scheduledAt: new Date(),

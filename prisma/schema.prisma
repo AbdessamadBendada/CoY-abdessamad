@@ -179,6 +179,10 @@ model Customer {
   churnRisk       ChurnRisk?
   lastScoredAt    DateTime?
   scoringDetails  Json?
+  scoringClaimedAt DateTime?
+  scoringAttempts  Int             @default(0)
+  scoringNextAttemptAt DateTime?
+  scoringLastError String?
 
   cooldownUntil   DateTime?
   lastActionAt    DateTime?
@@ -203,6 +207,9 @@ model Customer {
   @@index([tenantId])
   @@index([tenantId, churnScore])
   @@index([tenantId, churnRisk])
+  @@index([tenantId, lastScoredAt])
+  @@index([scoringClaimedAt])
+  @@index([scoringNextAttemptAt])
   @@index([cooldownUntil])
   @@map("customers")
 }
@@ -360,6 +367,10 @@ model WinbackAction {
   convertedValue  Decimal?      @db.Decimal(10, 2)
   failedAt        DateTime?
   failureReason   String?
+  sendingClaimedAt DateTime?
+  sendAttempts    Int           @default(0)
+  nextSendAttemptAt DateTime?
+  lastSendError   String?
 
   aiModelUsed     String?
   aiPromptVersion String?
@@ -384,9 +395,21 @@ model WinbackAction {
   @@index([tenantId, status])
   @@index([customerId])
   @@index([scheduledAt])
+  @@index([status, scheduledAt])
+  @@index([nextSendAttemptAt])
   @@index([tenantId, createdAt])
   @@index([scenarioId])
   @@map("winback_actions")
+}
+
+// Cursor shared by bounded dispatchers. It rotates the tenant window between
+// ticks so alphabetical/creation order cannot starve later tenants.
+model BackgroundCursor {
+  key       String   @id
+  value     String?
+  updatedAt DateTime @updatedAt
+
+  @@map("background_cursors")
 }
 
 enum ActionType {

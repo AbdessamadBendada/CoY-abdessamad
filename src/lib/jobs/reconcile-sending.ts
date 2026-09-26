@@ -1,4 +1,5 @@
 import { createJobsClient } from "@/lib/prisma";
+import { backgroundProcessing } from "@/lib/config/background-processing";
 
 // ─── runReconcileSending ──────────────────────────────────────────────────────
 //
@@ -10,17 +11,19 @@ import { createJobsClient } from "@/lib/prisma";
 export async function runReconcileSending(): Promise<{ reconciled: number }> {
   const prisma = createJobsClient();
   try {
-    const threshold = new Date(Date.now() - 5 * 60 * 1000); // Vercel Pro timeout max = 5 min
+    const threshold = new Date(Date.now() - backgroundProcessing.claimLeaseMinutes * 60 * 1000);
     const result = await prisma.winbackAction.updateMany({
       where: {
         status: "SENDING",
-        updatedAt: { lte: threshold },
+        sendingClaimedAt: { lte: threshold },
         sentAt: null, // guard défensif : sentAt et status:SENT sont atomiques en DB
       },
       data: {
         status: "FAILED",
         failedAt: new Date(),
-        failureReason: "SENDING_TIMEOUT",
+        failureReason: "DELIVERY_OUTCOME_UNKNOWN",
+        lastSendError: "DELIVERY_OUTCOME_UNKNOWN",
+        sendingClaimedAt: null,
       },
     });
     console.log(`[job/reconcile-sending] ${result.count} action(s) gelée(s) → FAILED`);

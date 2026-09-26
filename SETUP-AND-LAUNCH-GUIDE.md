@@ -83,6 +83,7 @@ Do not set `NODE_ENV`; Next.js sets it. Vercel injects `VERCEL_DEPLOYMENT_ID` wh
 | `GORGIAS_CLIENT_SECRET` | Gorgias OAuth token exchange. | Required for Gorgias OAuth; optional otherwise. Secret and environment-specific. |
 | `TRIGGER_PROJECT_REF` | Trigger.dev Project Settings → Project ref (`proj_...`). | Required for tasks. A project may contain DEV/STAGING/PROD environments. |
 | `TRIGGER_SECRET_KEY` | Trigger.dev environment API key / CLI authentication. | Required for local dev/deploy. Use the key for the selected environment; never reuse PROD locally. |
+| `BACKGROUND_TENANT_WINDOW`, `SCORING_BATCH_PER_TENANT`, `MESSAGE_BATCH_PER_TENANT`, `SCORING_DISPATCH_LIMIT`, `MESSAGE_DISPATCH_LIMIT`, `SCORING_WORKER_CONCURRENCY`, `MESSAGE_WORKER_CONCURRENCY`, `SCORING_MAX_ATTEMPTS`, `MESSAGE_MAX_ATTEMPTS`, `BACKGROUND_RETRY_BASE_SECONDS`, `BACKGROUND_CLAIM_LEASE_MINUTES`, `SCORING_RESCORE_DAYS`, `SCORING_ACTIVE_ORDER_DAYS` | Server-side background throughput/retry controls. Defaults in `.env.example` suit a new deployment. | Optional. Keep matching values in the Vercel manual-wrapper environment and its Trigger.dev environment. Test changes in staging first; these are not secrets. |
 | `UPSTASH_REDIS_REST_URL` | Upstash database REST URL. | Optional; set with its token. |
 | `UPSTASH_REDIS_REST_TOKEN` | Upstash database REST token. | Optional secret; set with its URL. |
 | `CRISP_PLUGIN_IDENTIFIER` | Crisp plugin identifier used by the deferred connector. | Optional while Crisp remains hidden. |
@@ -172,7 +173,7 @@ In a second Terminal window, from the same directory:
 npm run trigger:dev
 ```
 
-Sign in if the CLI asks. Keep this process running. Confirm the ten task IDs listed in section 12 appear in the Trigger.dev DEV dashboard.
+Sign in if the CLI asks. Keep this process running. Confirm the twelve task IDs listed in section 12 appear in the Trigger.dev DEV dashboard, including `score-customer` and `send-scheduled-action` workers.
 
 ### Step 9 — validate and start Next.js
 
@@ -416,23 +417,23 @@ Production scheduling is Trigger.dev v4. The `/api/cron/*` routes are authentica
 
 | Task ID / UTC schedule | Trigger and work | Failure/retry/health signal |
 |---|---|---|
-| `reconcile-sending` — every 5 min | Marks actions stuck in `SENDING` over five minutes as `FAILED` with `SENDING_TIMEOUT`. | Uncaught DB errors make the Trigger run fail; count is in run output. Any count above zero deserves investigation. |
+| `reconcile-sending` — every 5 min | Marks actions stuck past the configured claim lease as `FAILED` with `DELIVERY_OUTCOME_UNKNOWN`; it deliberately does not automatically resend ambiguous provider outcomes. | Any count above zero deserves investigation in Brevo before a new action is created. |
 | `sync-prestashop` — every 30 min | Polls active PrestaShop integrations for recent orders/customers. | Per-order errors are counted; HTTP/integration failures may be logged and skipped, so a run can be green with no import. Check logs, count and `lastSyncAt`. |
 | `sync-woocommerce` — every 30 min | Polls active WooCommerce integrations; currently none can be added in UI. | Same caveat: failures can be logged while run completes. Check output and `lastSyncAt`. |
 | `sync-crisp` — every 30 min | Polls deferred Crisp conversations/messages, scores them and requests actions. | Per-item errors are counted/logged; connector is hidden. |
-| `send-scheduled` — hourly | Claims up to 30 due `SCHEDULED` actions, re-generates/moderates and sends through Brevo. | Individual failures become `FAILED` or `CANCELLED`; run output has processed/sent/failed/skipped. Retry a failed action from CoY only after fixing cause. |
+| `send-scheduled` — every 5 min | Rotates through tenants, interleaves a bounded number of due actions, then queues one isolated worker per action. A shared Trigger.dev queue limits Brevo delivery concurrency. | Atomic `SCHEDULED → SENDING` claims prevent duplicates. Definite 429/5xx provider failures retry with exponential backoff; invalid/ambiguous outcomes stop for review. Run logs expose queued work and oldest due time. |
 | `trigger-winback-actions` — hourly | For each active/trial tenant, selects up to five highest-risk eligible customers and calls CoY's generate API. | Output has triggered/skipped/errors. Requires matching `SCORING_API_KEY` and reachable `NEXT_PUBLIC_APP_URL`. Source comment saying “daily” is stale; cron code is hourly. |
 | `cleanup-cooldowns` — daily 03:00 | Clears expired customer cooldown timestamps. | Run output reports cleaned count. |
-| `score-customers` — daily 04:00 | Scores up to five eligible customers per tenant who ordered in the last 90 days and were never scored or not scored for seven days. | Per-customer failures are counted but do not fail the whole run. Check `errors`, AI traces and `lastScoredAt`. |
+| `score-customers` — every 5 min | Rotates through tenants, prioritizes never-scored then oldest scores, and queues isolated customer workers. A shared Trigger.dev queue limits Mistral concurrency. | Atomic customer claims prevent concurrent scoring. Rate limits/transient provider errors release the claim and retry with exponential backoff; check worker failures and `oldestEligibleAt`. |
 | `trial-emails` — daily 09:00 Europe/Paris | Sends the trial lifecycle email sequence to tenant owners. | Output reports sent/skipped/errors. Requires Brevo. |
 | `remind-dpa-signature` — daily 09:00 Europe/Paris | Reminds eligible tenants to sign the DPA. | Output reports sent/skipped/errors. Without Brevo it logs a simulated reminder instead of sending. |
 
-No task sets an explicit retry policy in source. Trigger.dev automatically retries uncaught task failures according to platform defaults, but many jobs deliberately catch item-level errors and return an `errors` count; those successful runs are not retried automatically. This makes the returned counters and logs critical.
+The scoring and message workers use durable database retry metadata and a single Trigger.dev attempt per dispatched payload. This avoids duplicate external side effects on platform retries. Other tasks use Trigger.dev's platform defaults; their returned counters and logs remain critical.
 
 ### Configure Trigger.dev
 
 1. Create/select a project and copy its `proj_...` into `TRIGGER_PROJECT_REF`.
-2. In DEV, run `npm run trigger:dev`; verify all ten tasks register.
+2. In DEV, run `npm run trigger:dev`; verify all twelve tasks register.
 3. In each hosted Trigger environment, add at least `DIRECT_URL`, `DATABASE_URL`, `ENCRYPTION_KEY`, `NEXT_PUBLIC_APP_URL`, `SCORING_API_KEY`, `MISTRAL_API_KEY`, all Brevo variables, `INTERNAL_ALERT_EMAIL`, and Langfuse variables if enabled. Jobs import shared modules, so matching application configuration is safest.
 4. Deploy staging with `npx trigger.dev@latest deploy --env staging` after enabling STAGING for the project.
 5. Deploy production with `npm run trigger:deploy` while authenticated to PROD, or use Trigger.dev's Vercel integration and explicitly map Vercel staging/production environments.
@@ -526,7 +527,7 @@ Every staging secret must differ from production. Test new migrations on a recen
 - [ ] Stripe test Checkout and all five webhook events verified
 - [ ] Live Stripe product/price/webhook use only live credentials
 - [ ] Mistral scoring, timing, generation and moderation verified on fake data
-- [ ] Trigger.dev PROD deployment contains all ten tasks and schedules
+- [ ] Trigger.dev PROD deployment contains all twelve tasks and schedules
 - [ ] Imports, scoring, generation, scheduling and reconciliation runs are visible and healthy
 - [ ] Brevo sender/domain authenticated; controlled email delivered/tracked
 - [ ] Email opt-out tested and blocks another send
@@ -552,7 +553,7 @@ Perform this in staging with two synthetic tenants, a Shopify development store 
 7. **Run `score-customers` in Trigger.dev STAGING.** Expected: `scored: 1` (subject to eligibility), customer score fields and Langfuse trace. If zero, the order must be within 90 days and the customer unscored/out of cooldown. If errors, check Mistral key/quota and `DIRECT_URL`.
 8. **Run `trigger-winback-actions`.** Expected for a customer above the configured churn threshold: an action is generated/scheduled (maximum five per tenant/run). If skipped, inspect score, cooldown, existing recent actions, quotas, DPA and the generate API response.
 9. **Review the action before sending.** Expected: safe content, correct controlled recipient, unsubscribe link for email, and no real PII. Cancel if anything is unexpected.
-10. **Send/schedule to the controlled inbox.** Expected: Brevo accepts it and Action becomes SENT; for scheduled actions, run `send-scheduled` or wait for the hourly schedule. If FAILED, inspect `failureReason`, Brevo logs/key/sender and quotas.
+10. **Send/schedule to the controlled inbox.** Expected: Brevo accepts it and Action becomes SENT; for scheduled actions, run `send-scheduled` or wait up to five minutes. If FAILED, inspect `failureReason`, Brevo logs/key/sender and quotas.
 11. **Open and click the message.** Expected: Brevo webhook changes action to OPENED/CLICKED. If not, compare `message-id`, webhook URL secret and subscribed Brevo events.
 12. **Test opt-out.** Open the email opt-out link. Expected: a confirmation page appears and `customers.optedOutAt` is still empty. Click **Me désinscrire**; only then should `optedOutAt` be set and a second send be rejected/cancelled. With a separate synthetic customer and controlled phone, send one SMS, reply `STOP`, wait for the Brevo callback, and verify the same fields. If SMS does not opt out, check the action's `brevoMessageId`, callback secret, `webUrl` reachability and Brevo SMS event log.
 13. **Verify attribution.** Create another test order after the sent action. Expected: applicable attribution logic marks conversion/ROI. If not, inspect order email match, timestamps and webhook processing logs.

@@ -11,11 +11,11 @@ import { toValidTone, toValidCompensationType } from "@/types/scenarios";
 import { PLAN_PSYCH_TRIGGERS } from "@/config/psych-triggers";
 import { COOLDOWN_DAYS_DEFAULT } from "@/config/constants";
 import { getAppUrl } from "@/lib/utils/get-app-url";
+import { backgroundProcessing, retryAt } from "@/lib/config/background-processing";
+import { rotateAfter, roundRobin } from "@/lib/jobs/fair-dispatch";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
-// Worst-case: 30 × 8s = 240s = 4min < seuil reconcile-sending (5min) — évite race SENDING→FAILED
-const MAX_ACTIONS_PER_RUN = 30;
 const HARD_CAP_PERCENT = 50;    // aligné Zod ScenarioInputSchema (remise % max 50%)
 const HARD_CAP_FIXED_EUR = 500; // aligné Zod ScenarioInputSchema (compensationMaxEur max 500€)
 
@@ -37,7 +37,83 @@ export function capScheduledPromoValue(
 // Exécute les WinbackAction planifiées dont scheduledAt <= now.
 // Appelé par le Trigger.dev scheduled task (horaire) ET par /api/cron/send-scheduled.
 
-export async function runSendScheduled(): Promise<{
+export type MessageDispatchResult = {
+  actions: Array<{ id: string; tenantId: string; sendAttempts: number }>;
+  tenantCount: number;
+  oldestScheduledAt: Date | null;
+};
+
+/** Rotating tenant window + round-robin action selection. */
+export async function dispatchScheduledActions(
+  prisma: ReturnType<typeof createJobsClient>,
+  now = new Date(),
+): Promise<MessageDispatchResult> {
+  const [cursor, tenants] = await Promise.all([
+    prisma.backgroundCursor.findUnique({ where: { key: "messages" } }),
+    prisma.tenant.findMany({
+      where: { status: { in: ["ACTIVE", "TRIAL", "PAST_DUE"] } },
+      select: { id: true }, orderBy: { id: "asc" },
+    }),
+  ]);
+  const window = rotateAfter(tenants, cursor?.value ?? null, backgroundProcessing.tenantWindow);
+  if (window.length === 0) return { actions: [], tenantCount: 0, oldestScheduledAt: null };
+  await prisma.backgroundCursor.upsert({
+    where: { key: "messages" },
+    create: { key: "messages", value: window.at(-1)?.id },
+    update: { value: window.at(-1)?.id },
+  });
+  const perTenant = await Promise.all(window.map(async ({ id: tenantId }) => ({
+    tenantId,
+    items: await prisma.winbackAction.findMany({
+      where: { tenantId, status: "SCHEDULED", scheduledAt: { lte: now },
+        nextSendAttemptAt: { lte: now }, customer: { optedOutAt: null } },
+      select: { id: true, tenantId: true, scheduledAt: true, sendAttempts: true }, orderBy: [{ scheduledAt: "asc" }, { id: "asc" }],
+      take: backgroundProcessing.messageBatchPerTenant,
+    }),
+  })));
+  // `null` nextSendAttemptAt is normal for the first attempt; Prisma's AND/OR
+  // keeps that visible without allowing a future retry to run early.
+  for (const entry of perTenant) {
+    if (entry.items.length < backgroundProcessing.messageBatchPerTenant) {
+      const existing = new Set(entry.items.map((item) => item.id));
+      const initial = await prisma.winbackAction.findMany({
+        where: { tenantId: entry.tenantId, status: "SCHEDULED", scheduledAt: { lte: now },
+          nextSendAttemptAt: null, customer: { optedOutAt: null } },
+        select: { id: true, tenantId: true, scheduledAt: true, sendAttempts: true }, orderBy: [{ scheduledAt: "asc" }, { id: "asc" }],
+        take: backgroundProcessing.messageBatchPerTenant - entry.items.length,
+      });
+      entry.items.push(...initial.filter((item) => !existing.has(item.id)));
+    }
+  }
+  const selected = roundRobin(perTenant, backgroundProcessing.messageDispatchLimit);
+  const oldestScheduledAt = selected.reduce<Date | null>((oldest, item) =>
+    item.scheduledAt && (!oldest || item.scheduledAt < oldest) ? item.scheduledAt : oldest, null);
+  console.info("[jobs/message-dispatch]", { tenantsVisited: window.length, queued: selected.length,
+    oldestScheduledAt: oldestScheduledAt?.toISOString() ?? null });
+  await logMessageBacklog(prisma, now);
+  return { actions: selected.map(({ id, tenantId, sendAttempts }) => ({ id, tenantId, sendAttempts })), tenantCount: window.length, oldestScheduledAt };
+}
+
+export function retryableDeliveryError(error?: string): boolean {
+  return Boolean(error && /\b(429|5\d\d)\b|rate.?limit/i.test(error));
+}
+
+async function logMessageBacklog(prisma: ReturnType<typeof createJobsClient>, now: Date) {
+  const byTenant = await prisma.winbackAction.groupBy({
+    by: ["tenantId"],
+    where: { status: "SCHEDULED", scheduledAt: { lte: now }, customer: { optedOutAt: null },
+      OR: [{ nextSendAttemptAt: null }, { nextSendAttemptAt: { lte: now } }] },
+    _count: { _all: true }, _min: { scheduledAt: true },
+  });
+  const waiting = byTenant.reduce((total, row) => total + row._count._all, 0);
+  const oldestScheduledAt = byTenant.reduce<Date | null>((oldest, row) =>
+    row._min.scheduledAt && (!oldest || row._min.scheduledAt < oldest) ? row._min.scheduledAt : oldest, null);
+  console.info("[jobs/message-backlog]", { waiting, oldestScheduledAt: oldestScheduledAt?.toISOString() ?? null,
+    tenantBacklog: byTenant.sort((a, b) => b._count._all - a._count._all).slice(0, 10)
+      .map((row) => ({ tenantId: row.tenantId, waiting: row._count._all })) });
+}
+
+export async function runSendScheduled(options?: { actionIds?: string[] }): Promise<{
   processed: number;
   sent: number;
   failed: number;
@@ -47,8 +123,11 @@ export async function runSendScheduled(): Promise<{
   const now = new Date();
 
   try {
-  const scheduledActions = await prisma.winbackAction.findMany({
+  const dispatch = options?.actionIds ? null : await dispatchScheduledActions(prisma, now);
+  const actionIds = options?.actionIds ?? dispatch?.actions.map(({ id }) => id) ?? [];
+  const scheduledActions = actionIds.length === 0 ? [] : await prisma.winbackAction.findMany({
     where: {
+      id: { in: actionIds },
       status: "SCHEDULED",
       scheduledAt: { lte: now },
       customer: { optedOutAt: null },
@@ -82,7 +161,6 @@ export async function runSendScheduled(): Promise<{
         },
       },
     },
-    take: MAX_ACTIONS_PER_RUN,
     orderBy: { scheduledAt: "asc" },
   });
 
@@ -100,8 +178,13 @@ export async function runSendScheduled(): Promise<{
     // Doit être la PREMIÈRE opération, avant DPA/cooldown, pour que leurs
     // transitions (→CANCELLED) soient aussi protégées contre la concurrence.
     const claim = await prisma.winbackAction.updateMany({
-      where: { id: action.id, status: "SCHEDULED" },
-      data: { status: "SENDING" },
+      where: {
+        id: action.id,
+        status: "SCHEDULED",
+        scheduledAt: { lte: now },
+        OR: [{ nextSendAttemptAt: null }, { nextSendAttemptAt: { lte: now } }],
+      },
+      data: { status: "SENDING", sendingClaimedAt: now, sendAttempts: { increment: 1 } },
     });
     if (claim.count === 0) {
       console.log(`[send-scheduled] Action ${action.id} déjà claimée par un autre run, skip`);
@@ -397,10 +480,16 @@ export async function runSendScheduled(): Promise<{
     const cooldownDays = settings.cooldown_days ?? COOLDOWN_DAYS_DEFAULT;
     const cooldownUntil = new Date(now.getTime() + cooldownDays * 24 * 60 * 60 * 1000);
 
+    const attempt = action.sendAttempts + 1;
+    const retrying = !sendSuccess && retryableDeliveryError(sendError)
+      && attempt < backgroundProcessing.messageMaxAttempts;
     await prisma.winbackAction.update({
       where: { id: action.id },
       data: {
-        status: sendSuccess ? "SENT" : "FAILED",
+        status: sendSuccess ? "SENT" : retrying ? "SCHEDULED" : "FAILED",
+        sendingClaimedAt: null,
+        nextSendAttemptAt: retrying ? retryAt(attempt, now) : null,
+        lastSendError: sendSuccess ? null : sendError,
         content: safeFinalContent,
         subject: safeSubject ?? undefined,
         promoValue: cappedPromoValue ?? undefined,
@@ -420,8 +509,8 @@ export async function runSendScheduled(): Promise<{
           complianceLog: moderation.complianceLog,
         } as Prisma.InputJsonValue,
         sentAt: sendSuccess ? now : undefined,
-        failedAt: sendSuccess ? undefined : now,
-        failureReason: sendError,
+        failedAt: sendSuccess || retrying ? undefined : now,
+        failureReason: sendSuccess || retrying ? undefined : sendError,
         brevoMessageId: sendSuccess ? brevoMessageId : undefined,
       },
     });
@@ -441,7 +530,7 @@ export async function runSendScheduled(): Promise<{
     // un `if (quotas)` ici serait le fail-open documenté par le Plan A :
     // clé absente ⇒ compteur jamais incrémenté ⇒ actions illimitées.
     // smsCount déjà réservé atomiquement ci-dessus — ne pas le réincrémenter ici.
-    await prisma.quotaUsage.upsert({
+    if (sendSuccess) await prisma.quotaUsage.upsert({
       where: { tenantId_period: { tenantId: tenant.id, period } },
       create: {
         tenantId: tenant.id,
@@ -458,8 +547,10 @@ export async function runSendScheduled(): Promise<{
 
     if (sendSuccess) {
       results.sent++;
-    } else {
+    } else if (!retrying) {
       results.failed++;
+    } else {
+      results.skipped++;
     }
   }
 
