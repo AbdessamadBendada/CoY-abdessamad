@@ -1,4 +1,5 @@
 import { createJobsClient } from "@/shared/db/prisma";
+import { log } from "@/shared/observability/logger";
 
 // ─── runCleanupCooldowns ──────────────────────────────────────────────────────
 //
@@ -16,7 +17,7 @@ export async function runCleanupCooldowns(): Promise<{ cleaned: number }> {
       data: { cooldownUntil: null },
     });
 
-    console.log(`[job/cleanup-cooldowns] ${result.count} cooldown(s) réinitialisé(s)`);
+    log("info", "winback.cooldowns_cleaned", { cleaned: result.count });
     return { cleaned: result.count };
   } finally {
     await prisma.$disconnect();

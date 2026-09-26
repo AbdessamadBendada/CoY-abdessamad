@@ -4,6 +4,7 @@ import {
   processWooCommerceOrder,
   type WooCommerceOrderPayload,
 } from "@/features/integrations/woocommerce/process-order";
+import { log, reportError } from "@/shared/observability/logger";
 
 // ─── Validation URL boutique ─────────────────────────────────────────────────
 
@@ -40,7 +41,7 @@ export async function runSyncWooCommerce(): Promise<{ synced: number; errors: nu
 
       const siteUrl = config.site_url.replace(/\/$/, "");
       if (!isValidShopUrl(siteUrl)) {
-        console.error(`[sync-woocommerce] URL invalide pour intégration ${integration.id}: ${siteUrl}`);
+        log("warn", "integration.woocommerce.invalid_url", { integrationId: integration.id, tenantId: integration.tenantId });
         continue;
       }
 
@@ -63,12 +64,12 @@ export async function runSyncWooCommerce(): Promise<{ synced: number; errors: nu
           const url = `${siteUrl}/wp-json/wc/v3/orders?modified_after=${encodeURIComponent(sinceIso)}&per_page=100&page=${page}`;
           const res = await fetch(url, { headers });
           if (!res.ok) {
-            console.error(`[sync-woocommerce] GET orders failed for tenant ${integration.tenantId}: ${res.status}`);
+          log("error", "integration.woocommerce.fetch_failed", { integrationId: integration.id, tenantId: integration.tenantId, status: res.status });
             break;
           }
           orders = (await res.json()) as WooCommerceOrderPayload[];
         } catch (err) {
-          console.error(`[sync-woocommerce] Fetch orders error for tenant ${integration.tenantId}:`, err);
+          reportError("integration.woocommerce.fetch_error", err, { integrationId: integration.id, tenantId: integration.tenantId });
           break;
         }
 

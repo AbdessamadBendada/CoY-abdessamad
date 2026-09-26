@@ -23,6 +23,7 @@
   "dependencies": {
     "@mistralai/mistralai": "^2.2.1",
     "@prisma/client": "^6.19.2",
+    "@sentry/nextjs": "^11.0.0",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.98.0",
     "@trigger.dev/sdk": "^4.4.2",

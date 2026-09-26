@@ -3,6 +3,10 @@ import bundleAnalyzer from "@next/bundle-analyzer";
 
 // Activer avec : ANALYZE=true npm run build
 const withBundleAnalyzer = bundleAnalyzer({ enabled: process.env.ANALYZE === "true" });
+// Next.js development tooling uses eval; the production browser bundle does not.
+const scriptSource = process.env.NODE_ENV === "production"
+  ? "script-src 'self' 'unsafe-inline' https://js.stripe.com"
+  : "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com";
 
 const securityHeaders = [
   // Empêche le clickjacking — SAMEORIGIN permet l'aperçu Shopify Partners Dashboard
@@ -26,7 +30,7 @@ const securityHeaders = [
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com",
+      scriptSource,
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https:",
       "font-src 'self'",

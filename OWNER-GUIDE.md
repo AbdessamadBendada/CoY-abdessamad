@@ -100,6 +100,12 @@ Every business day, a named operator should check:
 - the internal alerts inbox: every critical alert has an owner;
 - Vercel: no repeating application/webhook error.
 
+### Simple routine
+
+- **Daily:** check Trigger.dev for failed jobs, CoY for failed/scheduled messages, and integrations for recent imports.
+- **Weekly:** review Sentry/Vercel alerts and queue-backlog warnings; make sure every alert has an owner.
+- **Monthly:** review Stripe/Brevo/Mistral/Trigger.dev costs, confirm Supabase backups exist, and review security/dependency updates.
+
 Every week, check Supabase backups, provider spending/limits, account access and one controlled fake-customer import/score/draft. A “green website” does not prove jobs, payments or messages are healthy.
 
 ## If something goes wrong

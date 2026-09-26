@@ -36,6 +36,11 @@ export async function isContactRateLimited(): Promise<boolean> {
     return !success;
   }
 
+  // A per-instance memory limit is not a production control. Fail closed for
+  // this non-essential public form rather than silently allowing bypasses
+  // across serverless instances.
+  if (process.env.NODE_ENV === "production") return true;
+
   // Fallback in-memory (dev ou env Upstash non configurées)
   const now = Date.now();
   const rec = memStore.get(ip);

@@ -5,6 +5,7 @@ import { computeOrderVariables } from "@/features/scoring/customer-data/compute-
 import { computeServiceVariables } from "@/features/scoring/customer-data/compute-service-variables";
 import { backgroundProcessing, retryAt } from "@/shared/config/background-processing";
 import { rotateAfter, roundRobin } from "@/features/scoring/fair-dispatch";
+import { log, operationalAlert, reportError } from "@/shared/observability/logger";
 
 export const RESCORE_DAYS = backgroundProcessing.rescoreDays;
 export const BATCH_SIZE = backgroundProcessing.scoringBatchPerTenant;
@@ -52,9 +53,12 @@ async function logScoringBacklog(prisma: PrismaClient, now: Date) {
   const waiting = byTenant.reduce((total, row) => total + row._count._all, 0);
   const oldestEligibleAt = byTenant.reduce<Date | null>((oldest, row) =>
     row._min.lastScoredAt && (!oldest || row._min.lastScoredAt < oldest) ? row._min.lastScoredAt : oldest, null);
-  console.info("[jobs/scoring-backlog]", { waiting, oldestEligibleAt: oldestEligibleAt?.toISOString() ?? null,
+  log("info", "scoring.backlog", { waiting, oldestEligibleAt: oldestEligibleAt?.toISOString() ?? null,
     tenantBacklog: byTenant.sort((a, b) => b._count._all - a._count._all).slice(0, 10)
       .map((row) => ({ tenantId: row.tenantId, waiting: row._count._all })) });
+  if (waiting >= backgroundProcessing.backlogAlertThreshold) {
+    operationalAlert("warning", "scoring.backlog_threshold_exceeded", { waiting, threshold: backgroundProcessing.backlogAlertThreshold });
+  }
 }
 
 /** Bounded, rotating, round-robin selection. Never-scored customers come first. */
@@ -92,7 +96,7 @@ export async function dispatchScoreCustomers(
     (oldest, item) => item.lastScoredAt && (!oldest || item.lastScoredAt < oldest) ? item.lastScoredAt : oldest,
     null,
   );
-  console.info("[jobs/scoring-dispatch]", {
+  log("info", "scoring.dispatch", {
     tenantsVisited: window.length, candidates: candidates.length, oldestEligibleAt: oldestEligibleAt?.toISOString() ?? null,
   });
   await logScoringBacklog(prisma, now);
@@ -162,7 +166,7 @@ export async function processScoringCustomer(
         scoringNextAttemptAt: retrying ? retryAt(attempts, now) : new Date(now.getTime() + RESCORE_DAYS * 86_400_000),
         scoringLastError: (error instanceof Error ? error.message : String(error)).slice(0, 500) },
     });
-    console.error("[jobs/scoring-worker]", { customerId: input.customerId, retrying, attempts, error });
+    reportError("scoring.worker_failed", error, { customerId: input.customerId, tenantId: input.tenantId, retrying, attempts });
     return retrying ? "retrying" : "failed";
   }
 }

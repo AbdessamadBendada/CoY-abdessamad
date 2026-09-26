@@ -13,6 +13,7 @@ import { COOLDOWN_DAYS_DEFAULT } from "@/config/constants";
 import { getAppUrl } from "@/shared/utils/get-app-url";
 import { backgroundProcessing, retryAt } from "@/shared/config/background-processing";
 import { rotateAfter, roundRobin } from "@/features/scoring/fair-dispatch";
+import { log, operationalAlert, reportError } from "@/shared/observability/logger";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -88,7 +89,7 @@ export async function dispatchScheduledActions(
   const selected = roundRobin(perTenant, backgroundProcessing.messageDispatchLimit);
   const oldestScheduledAt = selected.reduce<Date | null>((oldest, item) =>
     item.scheduledAt && (!oldest || item.scheduledAt < oldest) ? item.scheduledAt : oldest, null);
-  console.info("[jobs/message-dispatch]", { tenantsVisited: window.length, queued: selected.length,
+  log("info", "messaging.dispatch", { tenantsVisited: window.length, queued: selected.length,
     oldestScheduledAt: oldestScheduledAt?.toISOString() ?? null });
   await logMessageBacklog(prisma, now);
   return { actions: selected.map(({ id, tenantId, sendAttempts }) => ({ id, tenantId, sendAttempts })), tenantCount: window.length, oldestScheduledAt };
@@ -108,9 +109,12 @@ async function logMessageBacklog(prisma: ReturnType<typeof createJobsClient>, no
   const waiting = byTenant.reduce((total, row) => total + row._count._all, 0);
   const oldestScheduledAt = byTenant.reduce<Date | null>((oldest, row) =>
     row._min.scheduledAt && (!oldest || row._min.scheduledAt < oldest) ? row._min.scheduledAt : oldest, null);
-  console.info("[jobs/message-backlog]", { waiting, oldestScheduledAt: oldestScheduledAt?.toISOString() ?? null,
+  log("info", "messaging.backlog", { waiting, oldestScheduledAt: oldestScheduledAt?.toISOString() ?? null,
     tenantBacklog: byTenant.sort((a, b) => b._count._all - a._count._all).slice(0, 10)
       .map((row) => ({ tenantId: row.tenantId, waiting: row._count._all })) });
+  if (waiting >= backgroundProcessing.backlogAlertThreshold) {
+    operationalAlert("warning", "messaging.backlog_threshold_exceeded", { waiting, threshold: backgroundProcessing.backlogAlertThreshold });
+  }
 }
 
 export async function runSendScheduled(options?: { actionIds?: string[] }): Promise<{
@@ -344,7 +348,7 @@ export async function runSendScheduled(options?: { actionIds?: string[] }): Prom
             : undefined,
       });
     } catch (err) {
-      console.error(`[job/send-scheduled] Erreur génération action ${action.id}:`, err);
+      reportError("messaging.generation_failed", err, { actionId: action.id, tenantId: tenant.id });
       await prisma.winbackAction.update({
         where: { id: action.id },
         data: {

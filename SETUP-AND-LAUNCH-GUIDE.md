@@ -10,7 +10,7 @@ CoY builds, has focused automated safety tests, serves every public route and ca
 - PrestaShop works through Webservice polling and no longer presents a missing module download. The first poll imports only orders created during the previous 30 minutes; it is not a historical import or a real-time webhook flow.
 - WooCommerce code exists, but WooCommerce is in `DEFERRED_INTEGRATIONS` and is not shown on the Integrations page. It is not owner-usable without a code change and a new deployment.
 - Brevo SMS delivery, unsubscribe and STOP-reply events are handled, but production SMS still requires a controlled carrier/Brevo test in the target country before activation.
-- The repository now has focused integration-safety tests, but not a full browser/end-to-end suite, and no dedicated error-monitoring service such as Sentry. The staging scenario below is still required.
+- The repository now has focused integration-safety tests and Sentry-ready server error reporting, but not a full browser/end-to-end suite. The staging scenario below is still required.
 - `npm audit --omit=dev` still reports three high-severity findings in the Prisma/config toolchain (`prisma`, `@prisma/config`, `deepmerge-ts`). The directly exploitable Next.js and Trigger `ws` findings found during this review were patched in `package-lock.json`; the remaining Prisma fix offered by npm is a breaking forced change and needs a tested upstream-compatible upgrade.
 
 Use only fake customers, development stores, test email addresses, test phone numbers and Stripe test mode until these items have been resolved.
@@ -413,6 +413,18 @@ For Langfuse, create a separate EU project per environment and set all three Lan
 
 ## 12. Background jobs
 
+### Operations configuration
+
+For staging and production, create a Sentry project and add `SENTRY_DSN` plus
+`SENTRY_ENVIRONMENT`. Generate `HEALTHCHECK_SECRET` with `openssl rand -hex 32`.
+Configure the host monitor to call `/api/health` for liveness and
+`/api/health/ready` with `Authorization: Bearer <HEALTHCHECK_SECRET>` for
+database/config readiness. The readiness response never exposes secrets.
+
+Set both Upstash variables in production. The public contact form intentionally
+fails closed if distributed rate limiting is not configured; local development
+may use its in-memory fallback.
+
 Production scheduling is Trigger.dev v4. The `/api/cron/*` routes are authenticated manual wrappers for diagnostics; there is no `vercel.json` schedule.
 
 | Task ID / UTC schedule | Trigger and work | Failure/retry/health signal |
@@ -424,6 +436,7 @@ Production scheduling is Trigger.dev v4. The `/api/cron/*` routes are authentica
 | `send-scheduled` — every 5 min | Rotates through tenants, interleaves a bounded number of due actions, then queues one isolated worker per action. A shared Trigger.dev queue limits Brevo delivery concurrency. | Atomic `SCHEDULED → SENDING` claims prevent duplicates. Definite 429/5xx provider failures retry with exponential backoff; invalid/ambiguous outcomes stop for review. Run logs expose queued work and oldest due time. |
 | `trigger-winback-actions` — hourly | For each active/trial tenant, selects up to five highest-risk eligible customers and calls CoY's generate API. | Output has triggered/skipped/errors. Requires matching `SCORING_API_KEY` and reachable `NEXT_PUBLIC_APP_URL`. Source comment saying “daily” is stale; cron code is hourly. |
 | `cleanup-cooldowns` — daily 03:00 | Clears expired customer cooldown timestamps. | Run output reports cleaned count. |
+| `cleanup-processed-webhooks` — daily 03:15 | Deletes up to 500 Stripe webhook deduplication IDs that were successfully processed more than 90 days ago. | Structured output reports deletion count; it never deletes unprocessed records. |
 | `score-customers` — every 5 min | Rotates through tenants, prioritizes never-scored then oldest scores, and queues isolated customer workers. A shared Trigger.dev queue limits Mistral concurrency. | Atomic customer claims prevent concurrent scoring. Rate limits/transient provider errors release the claim and retry with exponential backoff; check worker failures and `oldestEligibleAt`. |
 | `trial-emails` — daily 09:00 Europe/Paris | Sends the trial lifecycle email sequence to tenant owners. | Output reports sent/skipped/errors. Requires Brevo. |
 | `remind-dpa-signature` — daily 09:00 Europe/Paris | Reminds eligible tenants to sign the DPA. | Output reports sent/skipped/errors. Without Brevo it logs a simulated reminder instead of sending. |
@@ -433,7 +446,7 @@ The scoring and message workers use durable database retry metadata and a single
 ### Configure Trigger.dev
 
 1. Create/select a project and copy its `proj_...` into `TRIGGER_PROJECT_REF`.
-2. In DEV, run `npm run trigger:dev`; verify all twelve tasks register.
+2. In DEV, run `npm run trigger:dev`; verify all thirteen tasks register.
 3. In each hosted Trigger environment, add at least `DIRECT_URL`, `DATABASE_URL`, `ENCRYPTION_KEY`, `NEXT_PUBLIC_APP_URL`, `SCORING_API_KEY`, `MISTRAL_API_KEY`, all Brevo variables, `INTERNAL_ALERT_EMAIL`, and Langfuse variables if enabled. Jobs import shared modules, so matching application configuration is safest.
 4. Deploy staging with `npx trigger.dev@latest deploy --env staging` after enabling STAGING for the project.
 5. Deploy production with `npm run trigger:deploy` while authenticated to PROD, or use Trigger.dev's Vercel integration and explicitly map Vercel staging/production environments.
@@ -443,8 +456,9 @@ Healthy means recent scheduled runs exist at the expected interval, no recurring
 
 ## 13. Monitoring and operating checks
 
-There is no Sentry/PagerDuty integration. Errors appear in:
+Errors appear in:
 
+- Sentry for server exceptions and structured operational alerts when `SENTRY_DSN` is configured;
 - Vercel Project → Logs for Next.js, OAuth, webhook and API errors;
 - Trigger.dev → Runs for scheduled jobs and per-run console output/traces;
 - Supabase → Logs for database/auth failures and Table Editor for state;
