@@ -1,9 +1,10 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 
 const url = process.env.DATABASE_URL;
 if (!url || !/(test|testing|coy_test)/i.test(url) || /(prod|production|staging)/i.test(url)) throw new Error("Integration tests require a positively identified test database");
-const db = new PrismaClient({ datasourceUrl: url });
+const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: url }) });
 let sequence = 0;
 const id = () => `test-${Date.now()}-${sequence++}`;
 async function tenant() { const suffix = id(); return db.tenant.create({ data: { name: suffix, slug: suffix, email: `${suffix}@example.test` } }); }
