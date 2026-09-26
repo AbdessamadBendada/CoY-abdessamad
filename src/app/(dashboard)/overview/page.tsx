@@ -79,15 +79,16 @@ export default async function OverviewPage() {
   })();
 
   return (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column", gap: "0.625rem" }}>
+    <div className="app-page">
       {/* ── En-tête — statique, rendu immédiat (0 requête DB) ───────────────── */}
-      <div className="flex items-center justify-between gap-4" style={{ flexShrink: 0 }}>
+      <div className="app-page-header">
         <div>
+          <p className="app-page-kicker">Centre de pilotage</p>
           <h2
             style={{
               color: "#2B2523",
               fontFamily: "var(--font-heading)",
-              fontSize: "1.75rem",
+              fontSize: "2.1rem",
               fontWeight: 400,
               lineHeight: 1.2,
               letterSpacing: "-0.01em",
@@ -95,8 +96,8 @@ export default async function OverviewPage() {
           >
             Bonjour{user.firstName ? `, ${user.firstName}` : ""} 👋
           </h2>
-          <p className="text-xs" style={{ color: "#6B7280", marginTop: "0.1rem" }}>
-            {todayLabel} — Voici ce qui s&apos;est passé pendant que vous dormiez.
+          <p className="app-page-description">
+            {todayLabel} · Votre synthèse de rétention, prête à décider.
           </p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0 }}>
@@ -121,11 +122,11 @@ export default async function OverviewPage() {
       {trialDaysLeft !== null && (
         <div
           style={{
-            background: "#F5EDE4",
-            border: "1px solid rgba(217,119,87,0.3)",
-            borderLeft: "3px solid #D97757",
-            borderRadius: "0.625rem",
-            padding: "0.5rem 0.875rem",
+            background: "#fff8f4",
+            border: "1px solid rgba(235,98,79,0.24)",
+            borderLeft: "3px solid #eb624f",
+            borderRadius: "0.875rem",
+            padding: "0.7rem 1rem",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -133,7 +134,7 @@ export default async function OverviewPage() {
             flexShrink: 0,
           }}
         >
-          <p style={{ fontSize: "0.8rem", fontWeight: 600, color: "#5A3825" }}>
+            <p style={{ fontSize: "0.8rem", fontWeight: 600, color: "#6d302a" }}>
             Essai gratuit — {trialDaysLeft} jour{trialDaysLeft !== 1 ? "s" : ""} restant
             {trialDaysLeft !== 1 ? "s" : ""}
           </p>
@@ -158,7 +159,7 @@ export default async function OverviewPage() {
 
       {/* ── Row 2 — Graphique (60%) + Alertes+Insights (40%) — streaming ────── */}
       <div
-        className="grid gap-3 grid-cols-1 lg:grid-cols-5"
+        className="grid gap-4 grid-cols-1 lg:grid-cols-5"
         style={{ flex: 1, minHeight: 0 }}
       >
         {/* Graphique — prend toute la hauteur disponible */}

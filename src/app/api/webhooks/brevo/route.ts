@@ -6,9 +6,13 @@ import { prisma } from "@/lib/prisma";
 // Doc : https://developers.brevo.com/docs/transactional-webhooks
 
 interface BrevoWebhookEvent {
-  event: string;             // "opened" | "clicked" | "unsubscribe" | "delivered" | "soft_bounce" | "hard_bounce"
-  email: string;             // email du destinataire
-  "message-id": string;     // ID message Brevo (avec les chevrons : "<xxx@smtp...>")
+  event?: string;            // Email: opened | clicked | unsubscribe | delivered...
+  email?: string;
+  "message-id"?: string;    // Email message ID (sometimes wrapped in angle brackets)
+  messageId?: string | number; // SMS message ID
+  msg_status?: string;       // SMS: delivered | replied | unsubscribed | hard_bounce...
+  reply?: string;
+  to?: string;
   id?: number;               // ID Brevo interne
   link?: string;             // URL cliquée (pour event "clicked")
   date?: string;             // ISO datetime
@@ -46,7 +50,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: "Payload invalide" }, { status: 400 });
   }
 
-  const { event, "message-id": rawMessageId } = body;
+  const event = (body.event ?? body.msg_status ?? "").toLowerCase();
+  const rawMessageId = body["message-id"] ?? body.messageId;
 
   if (!rawMessageId) {
     // Pas de message-id → on ne peut pas faire le lien avec une action
@@ -54,7 +59,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 
   // Brevo envoie le message-id avec des chevrons : "<uuid@smtp-relay.brevo.com>"
-  const messageId = rawMessageId.replace(/^<|>$/g, "").trim();
+  const messageId = String(rawMessageId).replace(/^<|>$/g, "").trim();
 
   // Trouver l'action correspondante
   const action = await prisma.winbackAction.findFirst({
@@ -117,7 +122,16 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       break;
     }
 
-    case "unsubscribe": {
+    case "unsubscribe":
+    case "unsubscribed":
+    case "replied": {
+      // Brevo reports inbound SMS replies separately. STOP and its common French
+      // variants are treated as a permanent opt-out; Brevo's own unsubscribed
+      // event is always an opt-out.
+      const reply = body.reply?.trim().toUpperCase() ?? "";
+      const isSmsOptOut = event === "unsubscribed" ||
+        (event === "replied" && /^(STOP|ARRET|ARRÊT|DESABONNER|DÉSABONNER)$/.test(reply));
+      if (event === "replied" && !isSmsOptOut) break;
       // Opt-out : mettre le client en cooldown permanent
       const fullAction = await prisma.winbackAction.findUnique({
         where: { id: action.id },
@@ -136,10 +150,28 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
             action: "CUSTOMER_OPTED_OUT",
             entityType: "Customer",
             entityId: fullAction.customerId,
-            details: { source: "BREVO_UNSUBSCRIBE", email: body.email },
+            details: {
+              source: event === "replied" ? "BREVO_SMS_STOP" : "BREVO_UNSUBSCRIBE",
+              channel: body.messageId !== undefined ? "SMS" : "EMAIL",
+            },
           },
         });
       }
+      break;
+    }
+
+    case "hard_bounce":
+    case "rejected":
+    case "bl": {
+      if (["CONVERTED", "CANCELLED"].includes(action.status)) break;
+      await prisma.winbackAction.update({
+        where: { id: action.id },
+        data: {
+          status: "FAILED",
+          failedAt: now,
+          failureReason: body.messageId !== undefined ? "SMS_UNDELIVERABLE" : "EMAIL_UNDELIVERABLE",
+        },
+      });
       break;
     }
 

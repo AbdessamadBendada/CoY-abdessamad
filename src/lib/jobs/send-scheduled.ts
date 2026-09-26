@@ -368,6 +368,7 @@ export async function runSendScheduled(): Promise<{
     // ── Envoyer via Brevo ─────────────────────────────────────────────────
     let sendSuccess = false;
     let sendError: string | undefined;
+    let brevoMessageId: string | undefined;
 
     if (!process.env.BREVO_API_KEY) {
       console.warn(`[job/send-scheduled] BREVO_API_KEY absent — action ${action.id} ignorée`);
@@ -381,10 +382,12 @@ export async function runSendScheduled(): Promise<{
       });
       sendSuccess = result.success;
       sendError = result.error;
+      brevoMessageId = result.messageId;
     } else if (customer.phone) {
       const result = await sendBrevoSms({ toPhone: customer.phone, content: safeFinalContent });
       sendSuccess = result.success;
       sendError = result.error;
+      brevoMessageId = result.messageId;
     } else {
       sendError = "Numéro de téléphone manquant";
     }
@@ -419,6 +422,7 @@ export async function runSendScheduled(): Promise<{
         sentAt: sendSuccess ? now : undefined,
         failedAt: sendSuccess ? undefined : now,
         failureReason: sendError,
+        brevoMessageId: sendSuccess ? brevoMessageId : undefined,
       },
     });
 

@@ -6,7 +6,7 @@ This is the plain-language map of your product. Keep it with the company records
 
 CoY receives order/customer information from an online shop and support information from Gorgias. It estimates which customers may leave, creates recovery messages with Mistral AI, sends email/SMS through Brevo, and measures actions and payments. Trigger.dev runs the recurring work in the background.
 
-The current copy is suitable for controlled development and staging tests. It is **not ready for real customers** until the launch blockers at the end of this guide are completed.
+The current copy is suitable for controlled development and staging tests. Its code checks pass, but it is **not ready for real customers** until the company configures the external services and signs off the staging checklist at the end of the technical guide.
 
 ## The accounts the company must own
 
@@ -107,28 +107,29 @@ Every week, check Supabase backups, provider spending/limits, account access and
 - Record time, tenant/store, action ID and provider event/run ID—never paste full secrets or unnecessary personal data into a ticket.
 - Check Trigger.dev for job failures, Vercel for API/webhook errors, then the provider's delivery/event log.
 - For suspected credential exposure, revoke the exposed provider key, deploy its replacement and verify service. Treat `ENCRYPTION_KEY` as a planned incident, not a simple rotation.
-- For a privacy/deletion request, involve the privacy/legal owner immediately. The current Shopify privacy endpoints do not perform the required work.
+- For a privacy/deletion request, involve the privacy/legal owner immediately. CoY now deletes matched Shopify customer/shop data and records data requests, but a human must still fulfill access requests and confirm any legal retention duty.
 
 ## Current launch blockers the owner must track
 
-1. **Shopify privacy:** the code acknowledges but does not fulfill customer data export, customer erasure or shop erasure requests. A developer must implement them and privacy/legal must approve and test them before Shopify App Store submission or real data.
-2. **SMS unsubscribe:** outgoing SMS contains `STOP`, but CoY has no inbound reply handler. Keep production SMS disabled until this is implemented and tested.
-3. **PrestaShop completeness:** the downloadable module is missing and polling imports only a recent window, not full history. Decide whether to build the module/historical importer or clearly limit the product promise.
-4. **WooCommerce:** backend pieces exist, but the connector is intentionally hidden. Decide whether it remains out of scope or fund its activation and full test.
-5. **Quality/monitoring:** this snapshot has no automated tests and no central error-alerting product. Add tests for auth, tenant isolation, billing, webhooks, jobs, opt-out and privacy; add reliable alerting/on-call ownership.
-6. **Dependency security:** the review removed the critical Next.js findings and patched the Trigger WebSocket dependency, but npm still reports three high findings in Prisma's configuration toolchain. A technical lead must test a compatible upgrade or document acceptance before launch; never run npm's forced downgrade blindly.
+1. **Owner configuration and rehearsal:** create the company-owned accounts/secrets, then complete every step in the technical guide's staging scenario. Passing a build is not a launch approval.
+2. **Shopify privacy operations:** code performs customer/shop redaction and alerts on access requests. The privacy owner must test it, approve retention rules and own the manual data-export response before App Store submission.
+3. **SMS verification:** STOP-reply and unsubscribe handling now exist, but keep production SMS disabled until a controlled phone test proves the Brevo callback works in the target country.
+4. **PrestaShop completeness:** the current connector polls the Webservice and imports only a recent window, not full history or real-time webhooks. Decide whether to fund a historical importer/real-time module or clearly limit the product promise.
+5. **WooCommerce:** backend pieces exist, but the connector is intentionally hidden and server actions reject deferred connectors. Decide whether it remains out of scope or fund its activation and full test.
+6. **Monitoring and test depth:** focused safety tests exist and lint/type/build pass, but there is no central error-alerting product or full browser/end-to-end suite. Assign daily operators and add broader automated coverage before scaling.
+7. **Dependency security:** the review removed the critical Next.js findings and patched the Trigger WebSocket dependency, but the latest `npm audit --omit=dev` result must be reviewed at each release. Never apply a forced breaking dependency change blindly.
 
 ## What the owner must do next
 
 1. Appoint a technical lead and privacy owner.
 2. Create company-owned development, staging and production accounts listed above; place recovery details in the company password manager.
 3. Ask the technical lead to follow `SETUP-AND-LAUNCH-GUIDE.md` using sandbox data.
-4. Fund and approve the six launch-blocker workstreams above.
+4. Fund and approve the launch-gate workstreams above.
 5. Complete the staging end-to-end scenario and have technical/privacy owners sign the first-launch checklist.
 6. Only then configure live Stripe/Brevo/Shopify settings and admit controlled production tenants.
 
 ## Current status
 
-- ✅ The architecture, environment variables, setup sequence and safe test process are documented from the actual repository.
-- ⚠️ All external accounts, secrets, domains, DNS, backups, legal settings and sandbox verification require owner action.
-- ❌ Real-customer launch is still blocked by the privacy/SMS/test/monitoring gaps above.
+- ✅ The application builds, focused tests pass, critical Shopify redaction and Brevo SMS tracking/STOP paths are implemented, and the setup/operation process is documented from the actual repository.
+- ⚠️ All external accounts, secrets, domains, DNS, backups, legal settings, monitoring ownership and sandbox verification require owner action.
+- ❌ Real-customer launch remains blocked until the complete staging scenario and first-launch checklist are signed; connector limitations and centralized monitoring remain explicit gaps.

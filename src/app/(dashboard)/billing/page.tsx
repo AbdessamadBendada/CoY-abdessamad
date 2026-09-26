@@ -71,16 +71,17 @@ export default async function BillingPage({
       : null;
 
   return (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column", gap: "0.625rem" }}>
+    <div className="app-page">
       {/* En-tête */}
-      <div style={{ flexShrink: 0 }}>
-        <h2 className="text-xl font-bold tracking-tight" style={{ color: "#2B2523" }}>
+      <div className="app-page-header"><div>
+        <p className="app-page-kicker">Compte &amp; usage</p>
+        <h2>
           Abonnement &amp; facturation
         </h2>
-        <p className="text-xs mt-0.5" style={{ color: "#6B7280" }}>
+        <p className="app-page-description">
           Gérez votre plan, votre cycle de facturation et consultez vos factures.
         </p>
-      </div>
+      </div></div>
 
       {/* Bannière succès paiement */}
       {success === "1" && (

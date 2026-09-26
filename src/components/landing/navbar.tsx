@@ -46,11 +46,13 @@ export function Navbar() {
       >
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
           {/* Wordmark */}
-          <Logo variant="compact" colorScheme="light" size="sm" href="/register" />
+          <Logo variant="compact" colorScheme="light" size="sm" href="/" />
 
           {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-6">
             {[
+              { href: "/#methode", label: "Méthode" },
+              { href: "/#integrations", label: "Intégrations" },
               { href: "/help", label: "Aide" },
             ].map((item) => (
               <a
@@ -176,6 +178,8 @@ export function Navbar() {
             className="md:hidden px-4 pb-6 pt-4 flex flex-col gap-4"
           >
             {[
+              { href: "/#methode", label: "Méthode" },
+              { href: "/#integrations", label: "Intégrations" },
               { href: "/help", label: "Aide" },
             ].map((item) => (
               <a

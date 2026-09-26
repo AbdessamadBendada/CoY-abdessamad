@@ -38,13 +38,16 @@ export default async function CustomersPage({
   const riskFilter = parseRisk(rawRisk);
 
   return (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column", gap: "0.625rem" }}>
+    <div className="app-page">
       {/* En-tête — statique, rendu immédiat */}
-      <div style={{ flexShrink: 0 }}>
-        <h2 className="text-xl font-bold tracking-tight" style={{ color: "#2B2523" }}>Clients à risque</h2>
-        <p className="text-xs mt-0.5" style={{ color: "#6B7280" }}>
+      <div className="app-page-header">
+        <div>
+        <p className="app-page-kicker">Portefeuille client</p>
+        <h2>Clients à risque</h2>
+        <p className="app-page-description">
           Clients détectés à risque de départ, classés par score d&apos;insatisfaction.
         </p>
+        </div>
       </div>
 
       {/* KPIs + tableau — streaming, prend le reste de la hauteur */}

@@ -1,8 +1,6 @@
-# CoY · Winback Agent — Dépôt d'évaluation développeur
+# CoY · Winback Agent
 
-Ce dépôt contient une copie du code réel de l'espace client CoY (Next.js 16 + React 19 +
-TypeScript + Prisma + Supabase), destinée à une évaluation technique. Il n'a pas d'historique
-Git — c'est un instantané du code, pas un clone du dépôt de production.
+Application Next.js 16 + React 19 + TypeScript + Prisma + Supabase pour détecter les clients à risque et orchestrer les actions de récupération.
 
 ## Guides d'exploitation
 
@@ -11,9 +9,7 @@ Git — c'est un instantané du code, pas un clone du dépôt de production.
 - [`OWNER-GUIDE.md`](./OWNER-GUIDE.md) : vue non technique des comptes, coûts, accès,
   contrôles de santé et blocages avant mise en production.
 
-> **Statut réel :** utilisable en développement/staging avec des comptes sandbox. Ne pas
-> traiter de vrais consommateurs avant la fermeture des blocages de confidentialité Shopify,
-> d'opt-out SMS, de tests/monitoring et de sécurité des dépendances détaillés dans les guides.
+> **Statut réel :** le lint, le typage, les tests ciblés et le build passent. Utilisez des comptes sandbox jusqu'à ce que l'équipe ait configuré les fournisseurs, exécuté le scénario staging et signé la checklist de lancement des guides.
 
 ## Prérequis
 
@@ -42,9 +38,7 @@ Dans le dashboard Supabase → **Authentication → URL Configuration** :
 cp .env.example .env.local
 ```
 
-Remplissez au minimum les variables marquées **bloquantes au démarrage** et **requises pour
-builder** dans `.env.example`. Pour les secrets locaux (`ENCRYPTION_KEY`, `OAUTH_STATE_SECRET`,
-etc.), générez des valeurs avec :
+Remplissez les variables requises pour les fonctions que vous testez, en suivant le tableau détaillé du guide. Pour les secrets locaux (`ENCRYPTION_KEY`, `OAUTH_STATE_SECRET`, etc.), générez des valeurs distinctes avec :
 
 ```bash
 openssl rand -hex 32
@@ -53,9 +47,12 @@ openssl rand -hex 32
 ## 4. Installation et lancement
 
 ```bash
-npm install
+npm ci
 npx prisma migrate deploy
-npm run build   # valide aussi les routes OAuth qui lisent leurs variables au chargement
+npm run lint
+npm run typecheck
+npm test
+npm run build
 npm run dev
 ```
 
@@ -75,9 +72,9 @@ npm run stripe:setup
 
 ## Notes importantes
 
-- **Intégrations tierces** (Shopify, Gorgias, PrestaShop, Crisp, Brevo) : connecter une vraie
+- **Intégrations tierces** (Shopify, Gorgias, PrestaShop et Brevo) : connecter une vraie
   boutique ou un vrai helpdesk nécessite vos propres comptes développeur sur ces plateformes.
-  Le code des intégrations est fonctionnel et testable même sans connexion réelle.
+  Les connecteurs Crisp et WooCommerce restent différés et ne sont pas proposés dans l'interface.
 - **Captures d'écran d'onboarding** : les guides d'intégration Shopify et Crisp ne contiennent
   pas leurs captures d'écran d'origine (identifiants de compte réels visibles dans les images
   sources) — l'intégration elle-même reste fonctionnelle et testable, seule l'illustration

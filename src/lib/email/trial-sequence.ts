@@ -113,7 +113,7 @@ export function buildEmailContent(
       return {
         subject: `${firstName}, votre CoY · Winback Agent attend sa première connexion`,
         htmlContent: `
-          <div style="font-family:Inter,sans-serif;max-width:600px;margin:0 auto;padding:32px 24px;color:#111827;">
+          <div style="font-family:'Avenir Next',Avenir,'Helvetica Neue',sans-serif;max-width:600px;margin:0 auto;padding:32px 24px;color:#111827;">
             <h1 style="font-size:22px;font-weight:700;margin-bottom:8px;">Bienvenue chez CoY · Winback Agent 👋</h1>
             <p>Bonjour ${safeFirstName},</p>
             <p>Votre compte <strong>${safeTenantName}</strong> est prêt. Vous avez <strong>21 jours</strong> pour tester CoY · Winback Agent gratuitement. Le moyen de paiement renseigné à l'inscription ne sera prélevé qu'à la fin de l'essai, sauf annulation de votre part.</p>
@@ -134,7 +134,7 @@ export function buildEmailContent(
       return {
         subject: `Vos premiers résultats WinBack sont prêts`,
         htmlContent: `
-          <div style="font-family:Inter,sans-serif;max-width:600px;margin:0 auto;padding:32px 24px;color:#111827;">
+          <div style="font-family:'Avenir Next',Avenir,'Helvetica Neue',sans-serif;max-width:600px;margin:0 auto;padding:32px 24px;color:#111827;">
             <h1 style="font-size:22px;font-weight:700;margin-bottom:8px;">Vos premiers résultats</h1>
             <p>Bonjour ${safeFirstName},</p>
             ${
@@ -165,7 +165,7 @@ export function buildEmailContent(
             ? `WinBack a identifié ${potentialRevenue}€ de CA récupérable ce mois`
             : `Vos clients à risque — ce qu'il faut savoir`,
         htmlContent: `
-          <div style="font-family:Inter,sans-serif;max-width:600px;margin:0 auto;padding:32px 24px;color:#111827;">
+          <div style="font-family:'Avenir Next',Avenir,'Helvetica Neue',sans-serif;max-width:600px;margin:0 auto;padding:32px 24px;color:#111827;">
             <h1 style="font-size:22px;font-weight:700;margin-bottom:8px;">La valeur que vous risquez de perdre</h1>
             <p>Bonjour ${safeFirstName},</p>
             ${
@@ -188,7 +188,7 @@ export function buildEmailContent(
       return {
         subject: `Il vous reste ${daysLeft} jours — et ${stats.customersAtRisk} clients à risque non traités`,
         htmlContent: `
-          <div style="font-family:Inter,sans-serif;max-width:600px;margin:0 auto;padding:32px 24px;color:#111827;">
+          <div style="font-family:'Avenir Next',Avenir,'Helvetica Neue',sans-serif;max-width:600px;margin:0 auto;padding:32px 24px;color:#111827;">
             <h1 style="font-size:22px;font-weight:700;margin-bottom:8px;">⏳ ${daysLeft} jours restants sur votre trial</h1>
             <p>Bonjour ${safeFirstName},</p>
             <p>Votre période d'essai se termine dans <strong>${daysLeft} jours</strong>. Sauf annulation de votre part, votre abonnement CoY (<strong>899€ HT/mois</strong>, résiliable à tout moment) démarrera automatiquement avec le moyen de paiement renseigné à l'inscription.</p>
@@ -212,7 +212,7 @@ export function buildEmailContent(
         ? {
             subject: `${firstName}, votre abonnement CoY démarre dans 2 jours`,
             htmlContent: `
-              <div style="font-family:Inter,sans-serif;max-width:600px;margin:0 auto;padding:32px 24px;color:#111827;">
+              <div style="font-family:'Avenir Next',Avenir,'Helvetica Neue',sans-serif;max-width:600px;margin:0 auto;padding:32px 24px;color:#111827;">
                 <h1 style="font-size:22px;font-weight:700;margin-bottom:8px;">Plus que 2 jours d'essai</h1>
                 <p>Bonjour ${safeFirstName},</p>
                 <p>Votre période d'essai de <strong>${safeTenantName}</strong> se termine dans 2 jours. Sauf annulation de votre part, votre abonnement CoY (<strong>899€ HT/mois</strong>) démarrera automatiquement — le moyen de paiement renseigné à l'inscription sera prélevé.</p>
@@ -229,7 +229,7 @@ export function buildEmailContent(
         : {
             subject: `${firstName}, votre abonnement CoY démarre dans 2 jours`,
             htmlContent: `
-              <div style="font-family:Inter,sans-serif;max-width:600px;margin:0 auto;padding:32px 24px;color:#111827;">
+              <div style="font-family:'Avenir Next',Avenir,'Helvetica Neue',sans-serif;max-width:600px;margin:0 auto;padding:32px 24px;color:#111827;">
                 <h1 style="font-size:22px;font-weight:700;margin-bottom:8px;">Plus que 2 jours d'essai</h1>
                 <p>Bonjour ${safeFirstName},</p>
                 <p>Votre période d'essai de <strong>${safeTenantName}</strong> se termine dans 2 jours. Sauf annulation de votre part, votre abonnement CoY (<strong>899€ HT/mois</strong>) démarrera automatiquement — le moyen de paiement renseigné à l'inscription sera prélevé.</p>
@@ -248,7 +248,7 @@ export function buildEmailContent(
       return {
         subject: `Dernier jour — votre abonnement CoY démarre demain`,
         htmlContent: `
-          <div style="font-family:Inter,sans-serif;max-width:600px;margin:0 auto;padding:32px 24px;color:#111827;">
+          <div style="font-family:'Avenir Next',Avenir,'Helvetica Neue',sans-serif;max-width:600px;margin:0 auto;padding:32px 24px;color:#111827;">
             <h1 style="font-size:22px;font-weight:700;margin-bottom:8px;">⏳ Dernier jour d'essai</h1>
             <p>Bonjour ${safeFirstName},</p>
             <p>Votre essai se termine demain. Sauf annulation de votre part, votre abonnement CoY (<strong>899€ HT/mois</strong>, résiliable à tout moment) démarrera automatiquement avec le moyen de paiement renseigné à l'inscription.</p>

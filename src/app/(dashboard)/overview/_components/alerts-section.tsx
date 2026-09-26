@@ -36,23 +36,20 @@ export async function AlertsSection({ tenantId }: AlertsSectionProps) {
 
   return (
     <div
+      className="surface-card"
       style={{
-        background: "#fff",
-        border: "1px solid #E8DDD0",
-        borderRadius: "0.75rem",
+        borderRadius: "1rem",
         overflow: "hidden",
       }}
     >
       <p
+        className="panel-title"
         style={{
-          fontSize: "0.8rem",
-          fontWeight: 700,
-          color: "#2B2523",
           padding: "1rem 1rem 0",
           marginBottom: "0.5rem",
         }}
       >
-        Alertes clients
+        À surveiller
       </p>
       {topRiskCustomers.length === 0 ? (
         <div style={{ padding: "2rem 1rem", textAlign: "center" }}>

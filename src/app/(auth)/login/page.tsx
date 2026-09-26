@@ -84,23 +84,6 @@ function LoginPageContent() {
   return (
     <div style={{ width: "100%" }}>
 
-      {/* ─── Lien retour ────────────────────────────────────────── */}
-      <a
-        href="/register"
-        style={{
-          position: "fixed",
-          top: "1rem",
-          left: "1rem",
-          fontFamily: "var(--font-body)",
-          fontSize: "0.8rem",
-          color: "rgba(43,37,35,0.5)",
-          textDecoration: "none",
-          zIndex: 10,
-        }}
-      >
-        ← Retour sur coyia.fr
-      </a>
-
       {/* ─── Card principale ────────────────────────────────────── */}
       <div
         style={{

@@ -1,16 +1,16 @@
 # CoY setup and launch guide
 
-This guide describes the code in this repository as it exists on 25 September 2026. It is the runbook for a developer or technical operator. `OWNER-GUIDE.md` is the shorter non-technical companion.
+This guide describes the code in this repository as it exists on 26 September 2026. It is the runbook for a developer or technical operator. `OWNER-GUIDE.md` is the shorter non-technical companion.
 
 ## Read this before launch
 
-CoY can be run locally and exercised with test accounts, but this snapshot is **not ready for real-customer production traffic** yet:
+CoY builds, has focused automated safety tests, serves every public route and can be exercised with sandbox accounts. It still needs owner-supplied services and a full staging rehearsal before real-customer production traffic:
 
-- Shopify's three privacy endpoints verify Shopify's signature but do not export or erase data. The source files explicitly contain `TODO` implementations. This blocks Shopify App Store submission and is also a privacy risk for any real customer data.
-- The PrestaShop module linked by the UI (`/downloads/winbackagent.zip`) is absent. Polling works, but the first poll imports only orders created during the previous 30 minutes; it is not a historical import.
+- Shopify customer and shop redaction are implemented. Customer data requests are verified, matched, audited and reported to the operations/owner mailbox, but a named human privacy owner must still provide requested data to the merchant within the applicable deadline. Legal/privacy review remains mandatory before App Store submission.
+- PrestaShop works through Webservice polling and no longer presents a missing module download. The first poll imports only orders created during the previous 30 minutes; it is not a historical import or a real-time webhook flow.
 - WooCommerce code exists, but WooCommerce is in `DEFERRED_INTEGRATIONS` and is not shown on the Integrations page. It is not owner-usable without a code change and a new deployment.
-- SMS sending requires the word `STOP`, but this repository has no inbound SMS STOP handler. Do not send production SMS until opt-out replies are connected and verified.
-- There is no automated test suite and no dedicated error-monitoring service such as Sentry. Build and lint checks are useful, but are not substitutes for the end-to-end test below.
+- Brevo SMS delivery, unsubscribe and STOP-reply events are handled, but production SMS still requires a controlled carrier/Brevo test in the target country before activation.
+- The repository now has focused integration-safety tests, but not a full browser/end-to-end suite, and no dedicated error-monitoring service such as Sentry. The staging scenario below is still required.
 - `npm audit --omit=dev` still reports three high-severity findings in the Prisma/config toolchain (`prisma`, `@prisma/config`, `deepmerge-ts`). The directly exploitable Next.js and Trigger `ws` findings found during this review were patched in `package-lock.json`; the remaining Prisma fix offered by npm is a breaking forced change and needs a tested upstream-compatible upgrade.
 
 Use only fake customers, development stores, test email addresses, test phone numbers and Stripe test mode until these items have been resolved.
@@ -180,6 +180,8 @@ In the first Terminal:
 
 ```bash
 npm run lint
+npm run typecheck
+npm test
 npm run build
 npm run dev
 ```
@@ -302,7 +304,9 @@ Configure these HTTPS destinations in the Shopify app:
 - `customers/redact` → `ORIGIN/api/webhooks/shopify/customers-redact`
 - `shop/redact` → `ORIGIN/api/webhooks/shopify/shop-redact`
 
-The routes currently return 2xx for valid signatures but **do not carry out the request**. A developer and privacy/legal owner must implement and test export, customer anonymization/deletion, shop deletion/retention, auditing and notification before real data or App Store submission. Shopify also requires protected-customer-data approval, a privacy policy, support contact, listing assets, app review and the other human/legal declarations in the Dev Dashboard. See Shopify's current official privacy requirements: <https://shopify.dev/docs/apps/build/compliance/privacy-law-compliance>.
+The final routes reject invalid HMAC signatures with 401. `customers/redact` hard-deletes the matched Shopify customer and cascades its orders, actions, conversations/messages and CSAT records. `shop/redact` deletes all customers sourced from that Shopify integration and then deletes the encrypted integration token. The CoY tenant and invoices remain because they belong to the merchant account and may have separate billing/legal retention duties. `customers/data_request` matches the customer, writes a PII-free audit record and alerts `INTERNAL_ALERT_EMAIL` (or the tenant OWNER when that address is blank); a named privacy operator must then provide the actual data to the merchant within the applicable deadline.
+
+Before App Store submission, test all three endpoints with Shopify CLI against staging, inspect the audit logs and deleted rows, and have privacy/legal approve the export, deletion and retention procedure. Shopify also requires protected-customer-data approval, a privacy policy, support contact, listing assets, app review and the other human/legal declarations in the Dev Dashboard. Current official privacy requirements: <https://shopify.dev/docs/apps/build/compliance/privacy-law-compliance>.
 
 Values that change per environment: app/client ID, client secret, app URL, redirect URL, privacy webhook URLs, development store and every stored access token.
 
@@ -333,7 +337,7 @@ PrestaShop is visible and connects with a Webservice API key.
 5. Trigger `sync-prestashop` from the Trigger.dev DEV/STAGING dashboard, or wait up to 30 minutes.
 6. Create a fake order less than 30 minutes old. Check `/customers`, Supabase `customers`/`orders`, Trigger.dev run output and the integration's `lastSyncAt`.
 
-The poll calls `/api/orders` filtered by `date_add`, then `/api/customers/{id}`. On the first run it looks back only 30 minutes. It does not bulk import historical orders, returns or messages. The UI links a CoY module and shows an optional webhook URL, but the ZIP is absent from `public/downloads`; therefore the real-time module path cannot be installed from this repository. Treat polling as the only available path and do not claim complete historical import.
+The poll calls `/api/orders` filtered by `date_add`, then `/api/customers/{id}`. On the first run it looks back only 30 minutes. It does not bulk import historical orders, returns or messages, and this repository does not include a PrestaShop real-time webhook module. Treat polling as the only available path and do not claim complete historical import.
 
 ## 9. Stripe setup
 
@@ -387,11 +391,11 @@ CoY uses Brevo directly through its HTTP API; it does not use SMTP for win-back 
 4. Configure an approved `BREVO_SMS_SENDER` if SMS is being tested.
 5. Generate `BREVO_WEBHOOK_SECRET` and create a transactional webhook pointing to:
    `ORIGIN/api/webhooks/brevo?secret=THE_SECRET`
-6. Subscribe it to delivered, opened, clicked and unsubscribe. The route ignores bounce/spam events and does not update an action for them.
+6. Subscribe the email webhook to delivered, opened, clicked and unsubscribe. CoY also accepts Brevo SMS callbacks sent through the `webUrl` attached to every SMS: delivered, replied, unsubscribed and hard-bounce/rejected events.
 7. Add only controlled team addresses/numbers as test recipients. Create/generate a CoY action and send one email. Verify the Action status progresses from SENT to OPENED/CLICKED when the webhook is delivered.
 8. Open the generated `/optout/<token>` link. Verify the test customer gets `optedOutAt` and cannot receive another action.
 
-Do not use a purchased list or a real customer during setup. Brevo email unsubscribe events are supported. SMS content is rejected unless it contains `STOP`, but replies are not consumed by this repository; production SMS remains blocked until an inbound STOP integration is implemented and tested.
+Do not use a purchased list or a real customer during setup. SMS uses Brevo's current `/v3/transactionalSMS/send` endpoint. CoY rejects outgoing SMS unless it contains `STOP`; Brevo `unsubscribed` events and replies equal to `STOP`, `ARRET`, `ARRÊT`, `DESABONNER` or `DÉSABONNER` permanently opt the matched customer out. Test this with one team-controlled number in staging and confirm `customers.optedOutAt` is set before enabling production SMS. Country/carrier rules and sender approval remain the owner's responsibility.
 
 ## 11. AI configuration
 
@@ -480,7 +484,7 @@ Weekly checklist:
 7. Attach the production domain and wait for HTTPS/DNS to be valid. Set `NEXT_PUBLIC_APP_URL` to that exact `https://` origin and redeploy.
 8. In the production Supabase project, apply `npx prisma migrate deploy`, then configure Site URL and exact auth redirects for the production domain.
 9. Configure the production Stripe endpoint/events and its live webhook secret.
-10. Configure the production Shopify app URL, OAuth callback and privacy endpoints. Do not submit or accept real stores until privacy handlers are completed.
+10. Configure the production Shopify app URL, OAuth callback and all three privacy endpoints. Do not submit or accept real stores until the staging privacy tests and legal review are signed off.
 11. Configure Gorgias callback `https://PRODUCTION_ORIGIN/api/gorgias/oauth/callback` and its production credentials.
 12. Configure Brevo's production transactional webhook and verified production sender.
 13. Deploy/match the Trigger.dev PROD environment and copy/sync its production variables. Confirm schedules only after safe manual runs.
@@ -515,7 +519,7 @@ Every staging secret must differ from production. Test new migrations on a recen
 - [ ] Production domain and HTTPS connected; `NEXT_PUBLIC_APP_URL` matches it
 - [ ] Shopify OAuth works on a development store
 - [ ] Shopify normal webhook subscriptions/deliveries verified
-- [ ] Shopify privacy export/redaction/shop-redaction handlers implemented and legally approved
+- [ ] Shopify privacy data-request alert, customer redaction and shop redaction verified in staging; human export procedure legally approved
 - [ ] Protected customer data access and any App Store review complete
 - [ ] PrestaShop polling limitation accepted or historical importer/module implemented
 - [ ] WooCommerce either formally remains unavailable or is enabled and fully tested
@@ -526,13 +530,13 @@ Every staging secret must differ from production. Test new migrations on a recen
 - [ ] Imports, scoring, generation, scheduling and reconciliation runs are visible and healthy
 - [ ] Brevo sender/domain authenticated; controlled email delivered/tracked
 - [ ] Email opt-out tested and blocks another send
-- [ ] SMS inbound STOP handling implemented before production SMS
+- [ ] SMS delivery callback and controlled STOP reply verified before production SMS
 - [ ] Failed action and retry path tested
 - [ ] Internal alert mailbox received a safe staging test alert
 - [ ] Vercel/Trigger/Supabase/Stripe/Brevo monitoring ownership assigned
 - [ ] Terms, privacy policy, DPA/subprocessor list and retention rules approved
 - [ ] Password-manager vault contains owner-controlled recovery access for every service
-- [ ] `npm audit --omit=dev` reviewed; remaining Prisma toolchain advisory accepted/remediated by the technical lead
+- [ ] `npm run lint`, `npm run typecheck`, `npm test`, `npm run build` and `npm audit --omit=dev` reviewed successfully
 - [ ] No real consumer was used during verification
 
 ## 17. Safe end-to-end verification
@@ -550,11 +554,12 @@ Perform this in staging with two synthetic tenants, a Shopify development store 
 9. **Review the action before sending.** Expected: safe content, correct controlled recipient, unsubscribe link for email, and no real PII. Cancel if anything is unexpected.
 10. **Send/schedule to the controlled inbox.** Expected: Brevo accepts it and Action becomes SENT; for scheduled actions, run `send-scheduled` or wait for the hourly schedule. If FAILED, inspect `failureReason`, Brevo logs/key/sender and quotas.
 11. **Open and click the message.** Expected: Brevo webhook changes action to OPENED/CLICKED. If not, compare `message-id`, webhook URL secret and subscribed Brevo events.
-12. **Test opt-out.** Open the email opt-out link. Expected: the confirmation page appears and `customers.optedOutAt` remains empty. Click **Me désinscrire**; only then should `optedOutAt` be set and a second send be rejected/cancelled.
+12. **Test opt-out.** Open the email opt-out link. Expected: a confirmation page appears and `customers.optedOutAt` is still empty. Click **Me désinscrire**; only then should `optedOutAt` be set and a second send be rejected/cancelled. With a separate synthetic customer and controlled phone, send one SMS, reply `STOP`, wait for the Brevo callback, and verify the same fields. If SMS does not opt out, check the action's `brevoMessageId`, callback secret, `webUrl` reachability and Brevo SMS event log.
 13. **Verify attribution.** Create another test order after the sent action. Expected: applicable attribution logic marks conversion/ROI. If not, inspect order email match, timestamps and webhook processing logs.
 14. **Verify isolation/RBAC.** Tenant B must not see A's customer/action; MEMBER must not perform OWNER/ADMIN send/configuration actions. Any leak is a release blocker.
 15. **Verify failure visibility.** In staging only, temporarily use an invalid Brevo key for a controlled action, observe FAILED and logs, restore the key and test retry. Never do this in production.
-16. **Delete the synthetic data according to the staging policy.** Do not use Shopify privacy endpoints for proof until their TODO logic is implemented.
+16. **Verify Shopify privacy handling.** Use Shopify CLI to trigger each compliance topic in staging. Expected: invalid HMAC returns 401; data request creates a PII-free audit entry and controlled alert; customer redaction deletes only the synthetic customer's related data; shop redaction deletes Shopify-sourced customers and the integration but retains the CoY merchant account/invoices. Never aim this test at production.
+17. **Delete remaining synthetic data according to the staging policy.** Keep the test evidence and audit identifiers, not unnecessary personal data.
 
 ## 18. Troubleshooting
 
@@ -593,7 +598,7 @@ Perform this in staging with two synthetic tenants, a Shopify development store 
 
 - Confirm public HTTPS, Webservice enabled, GET orders/customers permissions and Basic auth access to `/api/?output_format=JSON`.
 - Create an order within the 30-minute first-run window; this code filters `date_add`, not a full history.
-- Inspect Trigger run logs and `lastSyncAt`. The missing module means real-time webhook setup is not available from this repo.
+- Inspect Trigger run logs and `lastSyncAt`. This connector polls; real-time webhook setup is not available from this repo.
 
 ### WooCommerce is missing
 
@@ -615,6 +620,20 @@ Perform this in staging with two synthetic tenants, a Shopify development store 
 - Inspect action `failureReason`, Brevo transactional log, verified sender, API key and quota. Fix cause before using Retry.
 - Missing `BREVO_API_KEY` makes scheduled actions skip; automated generation can record a failure.
 
+### SMS sends but delivery or STOP is not recorded
+
+- Confirm `NEXT_PUBLIC_APP_URL` is the public HTTPS origin and `BREVO_WEBHOOK_SECRET` is set; CoY adds that callback URL to each SMS as `webUrl`.
+- Confirm the Action saved a numeric/string `brevoMessageId` and Brevo shows a callback for that same ID.
+- For a reply event, the controlled reply must be exactly `STOP`, `ARRET`, `ARRÊT`, `DESABONNER` or `DÉSABONNER` after trimming/case normalization.
+- Check Vercel logs for 401 (wrong query secret) and the customer row for `optedOutAt`/`cooldownUntil`. Do not retry against a real consumer.
+
+### Shopify privacy webhook is not completing
+
+- Verify the app-level compliance URL and `SHOPIFY_CLIENT_SECRET`; invalid HMAC deliberately returns 401.
+- Confirm `shop_domain` exactly matches the Shopify integration config. An unknown shop is safely acknowledged without deleting unrelated data.
+- Check `audit_logs` for `SHOPIFY_CUSTOMER_DATA_REQUESTED`, `SHOPIFY_CUSTOMER_REDACTED` or `SHOPIFY_SHOP_REDACTED`.
+- For data requests, check `INTERNAL_ALERT_EMAIL` or the tenant OWNER inbox and follow the human export procedure. For redaction, verify only synthetic staging records before approving production.
+
 ### Stripe payment works but subscription does not update
 
 - Find the exact event in Stripe and inspect endpoint response.
@@ -629,11 +648,18 @@ Perform this in staging with two synthetic tenants, a Shopify development store 
 
 ## 19. Release decision
 
-At the time this guide was created:
+At the time this guide was updated:
 
+- **Code quality:** `npm run lint`, `npm run typecheck`, `npm test` and `npm run build` pass. Public pages return 200 locally and protected routes redirect unauthenticated users to `/login`.
 - **Local/staging technical evaluation:** usable after the owner supplies sandbox accounts and secrets.
-- **Real-customer production:** blocked by incomplete Shopify privacy handling, incomplete SMS opt-out handling, integration/import limitations, absent automated tests and limited alerting.
+- **Real-customer production:** requires owner configuration and the complete staging scenario. Redaction and SMS STOP logic now exist, but privacy/legal approval, controlled provider tests, import limitations and limited centralized alerting remain launch gates.
 - **Dependency security:** no critical audit finding remains after the lockfile refresh, but three high Prisma/config toolchain findings remain and require a compatible upgrade/risk review.
 - **Human configuration still required:** all third-party accounts, domains, DNS, billing, legal/privacy approvals, backups, environment secrets and controlled end-to-end verification.
 
-Do not convert this status to “ready” merely because `npm run build` succeeds. Close the blockers, rerun lint/build plus an added automated test suite, complete the staging scenario, and have the owner/privacy lead sign the first-launch checklist.
+Do not convert this status to “ready” merely because `npm run build` succeeds. Complete the staging scenario, review the remaining limitations, and have the owner, technical lead and privacy lead sign the first-launch checklist.
+
+## Final status
+
+- ✅ **Working:** application shell, public home/help/legal/auth pages, protected dashboard routes, billing/scoring/message/job code paths, Shopify redaction handlers, Brevo delivery/STOP handling, focused safety tests and production build.
+- ⚠️ **Requires owner configuration:** every external account/key, Supabase projects and redirects, provider sandboxes, DNS/domain, backups, monitoring ownership, legal approval and the safe staging test in section 17.
+- ❌ **Still blocked:** real-customer launch until that owner configuration and staging verification are complete; PrestaShop historical/module support, WooCommerce availability and centralized alerting remain explicit product/operations limitations.

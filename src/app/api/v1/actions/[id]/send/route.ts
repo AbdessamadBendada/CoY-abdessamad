@@ -448,6 +448,7 @@ export async function POST(
         sentAt: sendResult.success ? new Date() : undefined,
         failedAt: !sendResult.success && !isTransient ? new Date() : undefined,
         failureReason: sendResult.success ? null : isTransient ? null : errorCode,
+        brevoMessageId: sendResult.success ? sendResult.messageId : undefined,
         subject: channel === "EMAIL" ? finalSubject : null,
         content: finalContent,
       },

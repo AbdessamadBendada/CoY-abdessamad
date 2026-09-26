@@ -37,25 +37,20 @@ export async function RevenueChartSection({ tenantId }: RevenueChartSectionProps
 
   return (
     <div
+      className="surface-card"
       style={{
-        background: "#FFFFFF",
-        border: "1px solid #E8DDD0",
-        borderRadius: "0.75rem",
-        padding: "1rem",
+        borderRadius: "1rem",
+        padding: "1.2rem",
         height: "100%",
         boxSizing: "border-box",
       }}
     >
-      <p
-        style={{
-          fontSize: "0.8rem",
-          fontWeight: 700,
-          color: "#2B2523",
-          marginBottom: "0.75rem",
-        }}
-      >
-        Évolution du CA sauvé — 6 derniers mois
+      <div style={{ marginBottom: "0.75rem" }}>
+      <p className="panel-title">Performance de récupération</p>
+      <p style={{ fontSize: "0.7rem", color: "#9b9099", marginTop: "0.2rem" }}>
+        Chiffre d&apos;affaires attribué aux actions CoY · 6 derniers mois
       </p>
+      </div>
       <RevenueChart data={revenueByMonth} />
     </div>
   );

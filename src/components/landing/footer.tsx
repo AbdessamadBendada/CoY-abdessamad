@@ -63,7 +63,7 @@ export function Footer() {
               L&apos;IA qui sauve vos clients avant qu&apos;ils ne partent.
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-              {["🇫🇷 Hébergé en France", "RGPD natif", "AI Act compliant"].map(
+              {["Données isolées par compte", "Désinscription intégrée", "Décisions traçables"].map(
                 (badge) => (
                   <span
                     key={badge}

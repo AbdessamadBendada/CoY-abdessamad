@@ -35,8 +35,8 @@ export default function GlobalError({
       <body
         style={{
           margin: 0,
-          fontFamily: "Inter, system-ui, sans-serif",
-          background: "#F9FAFB",
+          fontFamily: "Sora, Avenir Next, sans-serif",
+          background: "#f7f4ef",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -52,6 +52,10 @@ export default function GlobalError({
             padding: "2rem 1rem",
             textAlign: "center",
             maxWidth: 480,
+            background: "#fffdf9",
+            border: "1px solid #e8e0dc",
+            borderRadius: "1.25rem",
+            boxShadow: "0 18px 50px rgba(53,36,56,0.1)",
           }}
         >
           <div

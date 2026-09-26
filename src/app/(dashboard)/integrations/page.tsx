@@ -45,17 +45,18 @@ export default async function IntegrationsPage() {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="app-page">
       {/* En-tête */}
-      <div>
-        <h2 className="text-xl font-bold tracking-tight" style={{ color: "#2B2523" }}>Intégrations</h2>
-        <p className="text-xs mt-0.5" style={{ color: "#6B7280" }}>
-          Guidé étape par étape — temps selon votre plateforme, aucun développeur requis.
+      <div className="app-page-header"><div>
+        <p className="app-page-kicker">Sources de données</p>
+        <h2>Intégrations</h2>
+        <p className="app-page-description">
+          Connectez les plateformes qui alimentent la détection et les actions de récupération.
         </p>
-      </div>
+      </div></div>
 
       {/* Compteur quota */}
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+      <div className="flex w-fit items-center gap-2 rounded-full border border-[#e8e0dc] bg-white/70 px-3 py-1.5 text-xs text-[#7e737d] shadow-sm">
         <span>
           {activeCount} intégration{activeCount !== 1 ? "s" : ""} active
           {activeCount !== 1 ? "s" : ""}

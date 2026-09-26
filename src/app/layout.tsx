@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Instrument_Serif, Instrument_Sans, Cormorant_Garamond } from "next/font/google";
+import { Instrument_Serif, Sora, Cormorant_Garamond } from "next/font/google";
 import "./globals.css";
 
 const instrumentSerif = Instrument_Serif({
@@ -10,10 +10,10 @@ const instrumentSerif = Instrument_Serif({
   display: "swap",
 });
 
-const instrumentSans = Instrument_Sans({
+const sora = Sora({
   variable: "--font-body",
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
@@ -29,6 +29,14 @@ export const metadata: Metadata = {
   title: "CoY — l'agent Winback de CoYia | L'IA qui sauve vos clients avant qu'ils ne partent",
   description:
     "CoY détecte les signaux d'insatisfaction dans votre service client, score chaque client de 0 à 100, et déclenche automatiquement des actions de récupération. Essai gratuit 21 jours, sans prélèvement avant la fin de l'essai.",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
+  openGraph: {
+    title: "CoY — Repérez les clients qui s'éloignent",
+    description: "Un centre de pilotage pour détecter le risque, prioriser les clients et orchestrer les actions de récupération.",
+    images: [{ url: "/images/coy-social-card.png", width: 1200, height: 630 }],
+    locale: "fr_FR",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
@@ -45,7 +53,7 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://api.brevo.com" />
       </head>
       <body
-        className={`${instrumentSerif.variable} ${instrumentSans.variable} ${cormorantGaramond.variable} antialiased`}
+        className={`${instrumentSerif.variable} ${sora.variable} ${cormorantGaramond.variable} antialiased`}
       >
         {children}
       </body>

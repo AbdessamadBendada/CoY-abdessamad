@@ -1,35 +1,48 @@
-// TODO: Implémenter logique GDPR complète avant soumission Shopify App Store
-// Shopify envoie ce webhook quand un client demande la suppression de ses données.
-// Obligation : supprimer ou anonymiser les données PII dans les 30 jours.
-
-import { createHmac, timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-
-function validateShopifyHmac(rawBody: string, secret: string, signature: string): boolean {
-  const computed = createHmac("sha256", secret).update(rawBody, "utf8").digest("base64");
-  try {
-    return timingSafeEqual(Buffer.from(computed), Buffer.from(signature));
-  } catch {
-    return false;
-  }
-}
+import { prisma } from "@/lib/prisma";
+import {
+  findShopifyIntegration,
+  parseShopifyPrivacyPayload,
+  validateShopifyPrivacyHmac,
+} from "@/lib/integrations/shopify-privacy";
 
 export async function POST(request: NextRequest) {
   const rawBody = await request.text();
   const signature = request.headers.get("X-Shopify-Hmac-Sha256") ?? "";
-  const secret = process.env.SHOPIFY_CLIENT_SECRET ?? "";
-
-  if (!validateShopifyHmac(rawBody, secret, signature)) {
+  if (!validateShopifyPrivacyHmac(rawBody, signature)) {
     return NextResponse.json({ error: "Signature invalide" }, { status: 401 });
   }
 
-  // TODO: Implémenter logique GDPR complète avant soumission Shopify App Store
-  // 1. Parser payload : { shop_id, shop_domain, customer: { id, email, phone }, orders_to_redact }
-  // 2. Anonymiser Customer (email → hash, phone → null, firstName/lastName → "REDACTED")
-  // 3. Anonymiser WinbackAction.recipientEmail pour ce customer
-  // 4. Conserver agrégats anonymisés dans BetaMetrics (pas de PII)
-  // 5. AuditLog avec tenantId uniquement (sans données PII)
-  // 6. Notification interne (email INTERNAL_ALERT_EMAIL)
+  const payload = parseShopifyPrivacyPayload(rawBody);
+  if (!payload?.shop_domain || !payload.customer ||
+      (!payload.customer.id && !payload.customer.email)) {
+    return NextResponse.json({ error: "Payload invalide" }, { status: 400 });
+  }
+
+  const integration = await findShopifyIntegration(payload.shop_domain);
+  if (!integration) return NextResponse.json({ received: true });
+
+  // Customer cascades delete orders, actions, CSAT, conversations and messages.
+  // Aggregate tenant metrics contain no customer PII and are intentionally kept.
+  const result = await prisma.customer.deleteMany({
+    where: {
+      tenantId: integration.tenantId,
+      integrationId: integration.id,
+      OR: [
+        ...(payload.customer.id ? [{ externalId: String(payload.customer.id) }] : []),
+        ...(payload.customer.email ? [{ email: payload.customer.email }] : []),
+      ],
+    },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      tenantId: integration.tenantId,
+      action: "SHOPIFY_CUSTOMER_REDACTED",
+      entityType: "PrivacyRequest",
+      details: { source: "SHOPIFY", deletedRecords: result.count },
+    },
+  });
 
   return NextResponse.json({ received: true });
 }

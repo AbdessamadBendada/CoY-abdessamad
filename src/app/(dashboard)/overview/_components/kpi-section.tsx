@@ -141,19 +141,17 @@ export async function KPISection({ tenantId, trialActive, dpaSignedAt }: KPISect
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         {/* Hero KPI — CA sauvé ce mois */}
         <div
+          className="metric-card metric-card--hero"
           style={{
-            background: "#FFFFFF",
-            border: "1px solid #E8DDD0",
-            borderRadius: "0.75rem",
+            borderRadius: "1rem",
             padding: "1rem 1.25rem",
-            boxShadow: "0 1px 3px rgba(43,37,35,0.08)",
             display: "flex",
             flexDirection: "column",
             gap: "0.35rem",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <p style={{ fontSize: "0.7rem", fontWeight: 500, color: "#7A6355", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+            <p style={{ fontSize: "0.66rem", fontWeight: 600, color: "rgba(255,255,255,0.56)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
               CA sauvé ce mois
             </p>
             <div
@@ -161,30 +159,29 @@ export async function KPISection({ tenantId, trialActive, dpaSignedAt }: KPISect
                 width: 28,
                 height: 28,
                 borderRadius: "0.5rem",
-                background: "rgba(184,168,152,0.15)",
-                border: "1px solid rgba(184,168,152,0.25)",
+                background: "rgba(235,98,79,0.12)",
+                border: "1px solid rgba(235,98,79,0.24)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 flexShrink: 0,
               }}
             >
-              <TrendingUp style={{ width: 13, height: 13, color: "#B8A898" }} />
+              <TrendingUp style={{ width: 13, height: 13, color: "#ff7966" }} />
             </div>
           </div>
           <KpiValue
             value={revenueSavedThisMonth > 0 ? `${revenueSavedThisMonth.toFixed(0)} €` : "—"}
             style={{
               fontFamily: "var(--font-heading)",
-              fontStyle: "italic",
-              fontSize: "2.25rem",
+              fontSize: "2.45rem",
               fontWeight: 400,
-              color: "#2B2523",
+              color: "#f6be54",
               lineHeight: 1,
               letterSpacing: "-0.02em",
             }}
           />
-          <p style={{ fontSize: "0.8rem", color: "#7A6355" }}>
+          <p style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.55)" }}>
             {revenueSavedThisMonth > 0 ? "CA récupéré ce mois" : "Premières conversions en cours."}
           </p>
         </div>
@@ -195,16 +192,16 @@ export async function KPISection({ tenantId, trialActive, dpaSignedAt }: KPISect
           const isAtRiskActive = kpi.variant === "atRisk" && customersAtRisk > 0;
           return (
             <div
+              className="metric-card"
               key={kpi.label}
               style={{
-                background: isAtRiskActive ? "rgba(192,68,42,0.04)" : "#fff",
-                border: isAtRiskActive ? "1px solid rgba(217,119,87,0.2)" : "1px solid #E8DDD0",
-                borderRadius: "0.75rem",
+                background: isAtRiskActive ? "#fff8f4" : undefined,
+                border: isAtRiskActive ? "1px solid rgba(235,98,79,0.24)" : undefined,
+                borderRadius: "1rem",
                 padding: "1rem 1.25rem",
                 display: "flex",
                 flexDirection: "column",
                 gap: "0.35rem",
-                boxShadow: "0 1px 3px rgba(43,37,35,0.08)",
               }}
             >
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -230,7 +227,6 @@ export async function KPISection({ tenantId, trialActive, dpaSignedAt }: KPISect
                 value={kpi.value}
                 style={{
                   fontFamily: "var(--font-heading)",
-                  fontStyle: "italic",
                   fontSize: "2.25rem",
                   fontWeight: 400,
                   color: "#2B2523",

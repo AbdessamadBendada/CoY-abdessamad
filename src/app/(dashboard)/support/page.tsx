@@ -8,16 +8,17 @@ export default async function SupportPage() {
   await requireAuth();
 
   return (
-    <div className="space-y-3 max-w-3xl">
+    <div className="app-page max-w-5xl">
       {/* En-tête */}
-      <div>
-        <h2 style={{ fontSize: "1.25rem", fontWeight: 800, color: "#2B2523", letterSpacing: "-0.02em" }}>
+      <div className="app-page-header"><div>
+        <p className="app-page-kicker">Aide humaine</p>
+        <h2>
           Support
         </h2>
-        <p style={{ color: "#6B7280", fontSize: "0.8rem", marginTop: "0.15rem" }}>
+        <p className="app-page-description">
           Notre équipe est disponible pour vous aider. Réponse garantie sous 24h.
         </p>
-      </div>
+      </div></div>
 
       {/* Cartes de contact */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

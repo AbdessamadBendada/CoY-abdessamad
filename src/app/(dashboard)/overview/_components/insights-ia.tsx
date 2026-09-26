@@ -31,10 +31,9 @@ const INSIGHTS = [
 export function InsightsIA() {
   return (
     <div
+      className="surface-card"
       style={{
-        background: "#FFFFFF",
-        border: "1px solid #E8DDD0",
-        borderRadius: "0.75rem",
+        borderRadius: "1rem",
         overflow: "hidden",
       }}
     >

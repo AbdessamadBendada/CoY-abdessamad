@@ -3,463 +3,117 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
-import { LogoutButton } from "@/components/auth/logout-button";
+import { AnimatePresence, motion } from "framer-motion";
+import { Activity, ChevronLeft, CreditCard, HeadphonesIcon, LayoutDashboard, Menu, Plug, Settings, Users, X } from "lucide-react";
 import { Logo } from "@/components/Logo";
-import {
-  LayoutDashboard,
-  Users,
-  Activity,
-  Plug,
-  CreditCard,
-  Settings,
-  Menu,
-  X,
-  ChevronRight,
-  HeadphonesIcon,
-} from "lucide-react";
+import { LogoutButton } from "@/components/auth/logout-button";
 
 type SidebarUser = {
   firstName: string | null;
   lastName: string | null;
-  tenant: {
-    name: string;
-    plan: string;
-    status: string;
-  };
+  tenant: { name: string; plan: string; status: string };
 };
 
-const NAV_ITEMS = [
-  { href: "/overview",     label: "Vue d'ensemble",   icon: LayoutDashboard },
-  { href: "/customers",    label: "Clients à risque",  icon: Users },
-  { href: "/actions",      label: "Actions en cours",  icon: Activity },
-  { href: "/integrations", label: "Intégrations",      icon: Plug },
-  { href: "/billing",      label: "Facturation",       icon: CreditCard },
-  { href: "/settings",     label: "Paramètres",        icon: Settings },
-  { href: "/support",      label: "Support",           icon: HeadphonesIcon },
+const NAV_GROUPS = [
+  { label: "Pilotage", items: [
+    { href: "/overview", label: "Vue d'ensemble", icon: LayoutDashboard },
+    { href: "/customers", label: "Clients à risque", icon: Users },
+    { href: "/actions", label: "Actions en cours", icon: Activity },
+  ]},
+  { label: "Configuration", items: [
+    { href: "/integrations", label: "Intégrations", icon: Plug },
+    { href: "/billing", label: "Facturation", icon: CreditCard },
+    { href: "/settings", label: "Paramètres", icon: Settings },
+    { href: "/support", label: "Support", icon: HeadphonesIcon },
+  ]},
 ] as const;
 
-const PLAN_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  COY:        { bg: "rgba(217,119,87,0.15)", text: "#D97757", border: "rgba(217,119,87,0.3)" },
-  ESSENTIEL:  { bg: "rgba(232,184,75,0.15)",  text: "#E8B84B", border: "rgba(232,184,75,0.3)" },
-  STARTER:    { bg: "rgba(232,184,75,0.2)",   text: "#E8B84B", border: "rgba(232,184,75,0.35)" },
-  CROISSANCE: { bg: "rgba(232,184,75,0.2)",   text: "#E8B84B", border: "rgba(232,184,75,0.35)" },
-  EXPERT:     { bg: "rgba(217,119,87,0.15)", text: "#D97757", border: "rgba(217,119,87,0.3)" },
-};
-
 const PLAN_LABELS: Record<string, string> = {
-  COY: "CoY",
-  ESSENTIEL: "Essentiel",
-  STARTER: "Starter",
-  CROISSANCE: "Croissance",
-  EXPERT: "Expert",
+  COY: "CoY", ESSENTIEL: "Essentiel", STARTER: "Starter", CROISSANCE: "Croissance", EXPERT: "Expert",
 };
 
-// ─── NavItem ──────────────────────────────────────────────────────────────────
-
-function NavItem({
-  href,
-  label,
-  icon: Icon,
-  active,
-  open,
-  onClick,
-}: {
-  href: string;
-  label: string;
-  icon: React.ElementType;
-  active: boolean;
-  open: boolean;
-  onClick?: () => void;
-}) {
-  return (
-    <Link
-      href={href}
-      onClick={onClick}
-      title={!open ? label : undefined}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: open ? "flex-start" : "center",
-        gap: "0.65rem",
-        padding: open ? "0.55rem 0.75rem" : "0.55rem",
-        borderRadius: "0.5rem",
-        transition: "background 0.15s, color 0.15s",
-        position: "relative",
-        color: active ? "#F5F0E8" : "rgba(245,240,232,0.7)",
-        background: active ? "#D97757" : "transparent",
-        borderLeft: "none",
-        textDecoration: "none",
-        whiteSpace: "nowrap",
-        overflow: "hidden",
-      }}
-      onMouseEnter={(e) => {
-        if (!active) {
-          (e.currentTarget as HTMLElement).style.background = "rgba(245,240,232,0.06)";
-          (e.currentTarget as HTMLElement).style.color = "rgba(245,240,232,0.9)";
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!active) {
-          (e.currentTarget as HTMLElement).style.background = "transparent";
-          (e.currentTarget as HTMLElement).style.color = "rgba(245,240,232,0.7)";
-        }
-      }}
-    >
-      <Icon style={{ width: 17, height: 17, flexShrink: 0, color: active ? "#F5F0E8" : "currentColor" }} />
-      <AnimatePresence>
-        {open && (
-          <motion.span
-            initial={{ opacity: 0, width: 0 }}
-            animate={{ opacity: 1, width: "auto" }}
-            exit={{ opacity: 0, width: 0 }}
-            transition={{ duration: 0.18, ease: "easeInOut" }}
-            style={{ fontSize: "0.875rem", fontWeight: active ? 600 : 500, overflow: "hidden" }}
-          >
-            {label}
-          </motion.span>
-        )}
-      </AnimatePresence>
-    </Link>
-  );
-}
-
-// ─── SidebarContent (desktop) ─────────────────────────────────────────────────
-
-function SidebarContent({
-  user,
-  open,
-  setOpen,
-  onClose,
-}: {
+function SidebarContent({ user, expanded, onToggle, onNavigate }: {
   user: SidebarUser;
-  open: boolean;
-  setOpen: (v: boolean) => void;
-  onClose?: () => void;
+  expanded: boolean;
+  onToggle?: () => void;
+  onNavigate?: () => void;
 }) {
   const pathname = usePathname();
-  const planColors = PLAN_COLORS[user.tenant.plan] ?? PLAN_COLORS["ESSENTIEL"];
-  const initials = [user.firstName, user.lastName]
-    .filter(Boolean)
-    .map((n) => n![0])
-    .join("")
-    .toUpperCase() || "?";
-
-  function isActive(href: string) {
-    if (href === "/overview") return pathname === "/overview";
-    return pathname.startsWith(href);
-  }
+  const initials = [user.firstName, user.lastName].filter(Boolean).map((name) => name![0]).join("").toUpperCase() || "?";
+  const active = (href: string) => href === "/overview" ? pathname === href : pathname.startsWith(href);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "#2B2523" }}>
-
-      {/* ─── Logo + toggle ────────────────────────────────────────── */}
-      <div
-        style={{
-          padding: "1rem 0.75rem",
-          borderBottom: "1px solid rgba(255,255,255,0.06)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: open ? "space-between" : "center",
-          gap: "0.5rem",
-          minHeight: 60,
-        }}
-      >
-        <AnimatePresence>
-          {open && (
-            <motion.div
-              initial={{ opacity: 0, x: -8 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -8 }}
-              transition={{ duration: 0.18 }}
-              style={{ display: "flex", alignItems: "center", gap: "0.45rem", overflow: "hidden" }}
-            >
-              <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
-                <circle cx="12" cy="12" r="3"  fill="none" stroke="#E8B84B" strokeWidth="1.2"/>
-                <circle cx="12" cy="12" r="6"  fill="none" stroke="#D97757" strokeWidth="0.8"/>
-                <circle cx="12" cy="12" r="10" fill="none" stroke="#E8B84B" strokeWidth="0.6" opacity="0.6"/>
-                <path d="M12 12 L12 2 A10 10 0 0 1 22 12 Z" fill="rgba(217,119,87,0.2)"/>
-                <circle cx="12" cy="12" r="1.5" fill="#D97757"/>
-              </svg>
+    <div className="flex h-full flex-col bg-[#211725] text-[#f8f0ec]">
+      <div className="flex min-h-20 items-center justify-between border-b border-white/8 px-4">
+        <AnimatePresence initial={false}>
+          {expanded && (
+            <motion.div initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }} className="flex items-center gap-2 overflow-hidden">
+              <span className="grid size-8 shrink-0 place-items-center rounded-full border border-[#f1b84b]/30 bg-[#f1b84b]/10">
+                <span className="size-2 rounded-full bg-[#eb624f] shadow-[0_0_0_5px_rgba(235,98,79,0.13)]" />
+              </span>
               <Logo variant="full" colorScheme="dark" size="md" />
             </motion.div>
           )}
         </AnimatePresence>
-
-        {/* Toggle button */}
-        <button
-          onClick={() => setOpen(!open)}
-          aria-label={open ? "Réduire le menu" : "Agrandir le menu"}
-          style={{
-            width: 28,
-            height: 28,
-            borderRadius: "0.4rem",
-            background: "rgba(255,255,255,0.04)",
-            border: "1px solid rgba(255,255,255,0.08)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: "pointer",
-            color: "rgba(148,163,192,0.7)",
-            flexShrink: 0,
-            transition: "background 0.15s",
-          }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(217,119,87,0.15)"; (e.currentTarget as HTMLElement).style.color = "#E8B84B"; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)"; (e.currentTarget as HTMLElement).style.color = "rgba(245,240,232,0.6)"; }}
-        >
-          <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.25 }}>
-            <ChevronRight style={{ width: 14, height: 14 }} />
-          </motion.div>
-        </button>
+        {onToggle && (
+          <button type="button" onClick={onToggle} aria-label={expanded ? "Réduire le menu" : "Agrandir le menu"} className="grid size-8 shrink-0 place-items-center rounded-lg border border-white/10 bg-white/5 text-white/60 hover:border-white/20 hover:bg-white/10 hover:text-white">
+            <motion.span animate={{ rotate: expanded ? 0 : 180 }}><ChevronLeft className="size-4" /></motion.span>
+          </button>
+        )}
       </div>
 
-      {/* ─── Nav ─────────────────────────────────────────────────── */}
-      <nav
-        style={{
-          flex: 1,
-          padding: "0.75rem 0.5rem",
-          overflowY: "auto",
-          overflowX: "hidden",
-          display: "flex",
-          flexDirection: "column",
-          gap: "0.1rem",
-        }}
-      >
-        <AnimatePresence>
-          {open && (
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-              style={{
-                color: "rgba(245,240,232,0.5)",
-                fontSize: "0.65rem",
-                fontWeight: 700,
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                padding: "0.25rem 0.75rem 0.5rem",
-                whiteSpace: "nowrap",
-              }}
-            >
-              Navigation
-            </motion.p>
-          )}
-        </AnimatePresence>
-        {NAV_ITEMS.map(({ href, label, icon }) => (
-          <NavItem
-            key={href}
-            href={href}
-            label={label}
-            icon={icon}
-            active={isActive(href)}
-            open={open}
-            onClick={onClose}
-          />
+      <nav className="flex-1 space-y-7 overflow-y-auto px-3 py-5" aria-label="Navigation principale">
+        {NAV_GROUPS.map((group) => (
+          <div key={group.label}>
+            {expanded && <p className="mb-2 px-3 text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-white/35">{group.label}</p>}
+            <div className="space-y-1">
+              {group.items.map(({ href, label, icon: Icon }) => {
+                const isActive = active(href);
+                return (
+                  <Link key={href} href={href} onClick={onNavigate} title={expanded ? undefined : label} aria-current={isActive ? "page" : undefined}
+                    className={`group relative flex min-h-11 items-center rounded-xl transition-colors ${expanded ? "gap-3 px-3" : "justify-center px-2"} ${isActive ? "bg-[#eb624f]/15 text-white" : "text-white/62 hover:bg-white/6 hover:text-white"}`}>
+                    {isActive && <span className="absolute inset-y-2 left-0 w-[3px] rounded-full bg-[#eb624f]" />}
+                    <Icon className={`size-[18px] shrink-0 ${isActive ? "text-[#ff7966]" : "text-white/50 group-hover:text-white/80"}`} />
+                    {expanded && <span className="truncate text-[0.82rem] font-medium">{label}</span>}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
         ))}
       </nav>
 
-      {/* ─── User section ────────────────────────────────────────── */}
-      <div
-        style={{
-          borderTop: "1px solid rgba(255,255,255,0.06)",
-          padding: "0.75rem 0.5rem",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: open ? "flex-start" : "center",
-            gap: "0.6rem",
-            padding: "0.6rem 0.5rem",
-            borderRadius: "0.5rem",
-            background: "rgba(255,255,255,0.03)",
-            marginBottom: open ? "0.5rem" : "0.25rem",
-            overflow: "hidden",
-            transition: "margin 0.2s, justify-content 0.2s",
-          }}
-        >
-          {/* Avatar */}
-          <div
-            title={!open ? `${user.tenant.name} · ${PLAN_LABELS[user.tenant.plan] ?? user.tenant.plan}` : undefined}
-            style={{
-              width: 30,
-              height: 30,
-              borderRadius: "50%",
-              background: "rgba(232,184,75,0.15)",
-              border: "1px solid rgba(232,184,75,0.3)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-              fontSize: "0.68rem",
-              fontWeight: 700,
-              color: "#E8B84B",
-            }}
-          >
-            {initials}
-          </div>
-
-          <AnimatePresence>
-            {open && (
-              <motion.div
-                initial={{ opacity: 0, width: 0 }}
-                animate={{ opacity: 1, width: "auto" }}
-                exit={{ opacity: 0, width: 0 }}
-                transition={{ duration: 0.18 }}
-                style={{ flex: 1, minWidth: 0, overflow: "hidden" }}
-              >
-                <p style={{ color: "rgba(203,213,225,0.9)", fontSize: "0.78rem", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {user.tenant.name}
-                </p>
-                <span
-                  style={{
-                    display: "inline-block",
-                    background: planColors.bg,
-                    color: planColors.text,
-                    border: `1px solid ${planColors.border}`,
-                    fontSize: "0.62rem",
-                    fontWeight: 700,
-                    padding: "0 0.4rem",
-                    borderRadius: "9999px",
-                    lineHeight: "1.5",
-                  }}
-                >
-                  {PLAN_LABELS[user.tenant.plan] ?? user.tenant.plan}
-                </span>
-              </motion.div>
-            )}
-          </AnimatePresence>
+      <div className="border-t border-white/8 p-3">
+        <div className={`mb-2 flex items-center rounded-xl bg-white/5 p-2 ${expanded ? "gap-2.5" : "justify-center"}`}>
+          <div className="grid size-9 shrink-0 place-items-center rounded-full border border-[#f1b84b]/25 bg-[#f1b84b]/10 text-[0.68rem] font-bold text-[#f1c369]">{initials}</div>
+          {expanded && <div className="min-w-0 flex-1"><p className="truncate text-xs font-semibold text-white/90">{user.tenant.name}</p><p className="mt-0.5 text-[0.62rem] uppercase tracking-[0.12em] text-[#f1c369]">{PLAN_LABELS[user.tenant.plan] ?? user.tenant.plan}</p></div>}
         </div>
-
-        <LogoutButton collapsed={!open} />
+        <LogoutButton collapsed={!expanded} />
       </div>
     </div>
   );
 }
 
-// ─── DashboardSidebar ─────────────────────────────────────────────────────────
-
 export function DashboardSidebar({ user }: { user: SidebarUser }) {
-  const [desktopOpen, setDesktopOpen] = useState(true);
-  const [hovered, setHovered] = useState(false);
+  const [expanded, setExpanded] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
-
-  // Ouvert si épinglé OU survolé (quand fermé)
-  const effectiveOpen = desktopOpen || hovered;
 
   return (
     <>
-      {/* ─── Hamburger mobile ───────────────────────────────────── */}
-      <button
-        style={{
-          position: "fixed",
-          top: "0.75rem",
-          left: "0.75rem",
-          zIndex: 50,
-          width: 36,
-          height: 36,
-          borderRadius: "0.4rem",
-          background: "rgba(43,37,35,0.92)",
-          border: "1px solid rgba(217,119,87,0.2)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          cursor: "pointer",
-          color: "rgba(148,163,192,0.8)",
-        }}
-        className="md:hidden"
-        onClick={() => setMobileOpen(true)}
-        aria-label="Ouvrir le menu"
-      >
-        <Menu style={{ width: 18, height: 18 }} />
-      </button>
-
-      {/* ─── Backdrop mobile ────────────────────────────────────── */}
+      <button type="button" onClick={() => setMobileOpen(true)} aria-label="Ouvrir le menu" className="fixed left-3 top-3 z-50 grid size-9 place-items-center rounded-xl border border-white/10 bg-[#211725] text-white shadow-lg md:hidden"><Menu className="size-[18px]" /></button>
       <AnimatePresence>
         {mobileOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            style={{
-              position: "fixed",
-              inset: 0,
-              zIndex: 40,
-              background: "rgba(0,0,0,0.6)",
-              backdropFilter: "blur(4px)",
-            }}
-            className="md:hidden"
-            onClick={() => setMobileOpen(false)}
-          />
+          <>
+            <motion.button type="button" aria-label="Fermer le menu" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setMobileOpen(false)} className="fixed inset-0 z-40 bg-[#160f18]/65 backdrop-blur-sm md:hidden" />
+            <motion.aside initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }} transition={{ type: "spring", damping: 28, stiffness: 320 }} className="fixed inset-y-0 left-0 z-50 w-72 shadow-2xl md:hidden">
+              <button type="button" aria-label="Fermer le menu" onClick={() => setMobileOpen(false)} className="absolute right-3 top-6 z-10 grid size-8 place-items-center rounded-lg bg-white/8 text-white/70"><X className="size-4" /></button>
+              <SidebarContent user={user} expanded onNavigate={() => setMobileOpen(false)} />
+            </motion.aside>
+          </>
         )}
       </AnimatePresence>
-
-      {/* ─── Drawer mobile ──────────────────────────────────────── */}
-      <motion.aside
-        initial={false}
-        animate={{ x: mobileOpen ? 0 : "-100%" }}
-        transition={{ duration: 0.25, ease: "easeInOut" }}
-        style={{
-          position: "fixed",
-          inset: "0 auto 0 0",
-          zIndex: 50,
-          width: 256,
-        }}
-        className="md:hidden"
-      >
-        <button
-          style={{
-            position: "absolute",
-            top: "0.75rem",
-            right: "0.75rem",
-            zIndex: 1,
-            background: "rgba(255,255,255,0.06)",
-            border: "none",
-            borderRadius: "0.35rem",
-            width: 28,
-            height: 28,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: "pointer",
-            color: "rgba(148,163,192,0.7)",
-          }}
-          onClick={() => setMobileOpen(false)}
-          aria-label="Fermer le menu"
-        >
-          <X style={{ width: 14, height: 14 }} />
-        </button>
-        <SidebarContent
-          user={user}
-          open={true}
-          setOpen={() => {}}
-          onClose={() => setMobileOpen(false)}
-        />
-      </motion.aside>
-
-      {/* ─── Sidebar desktop — collapsible + hover expand ───────── */}
-      <motion.aside
-        className="hidden md:block"
-        animate={{ width: effectiveOpen ? 256 : 64 }}
-        transition={{ duration: 0.22, ease: [0.25, 0.46, 0.45, 0.94] }}
-        onMouseEnter={() => { if (!desktopOpen) setHovered(true); }}
-        onMouseLeave={() => setHovered(false)}
-        style={{
-          flexShrink: 0,
-          borderRight: "1px solid rgba(255,255,255,0.06)",
-          overflow: "hidden",
-        }}
-      >
-        <div style={{ position: "sticky", top: 0, height: "100vh", width: "100%" }}>
-          <SidebarContent
-            user={user}
-            open={effectiveOpen}
-            setOpen={setDesktopOpen}
-          />
-        </div>
+      <motion.aside animate={{ width: expanded ? 244 : 72 }} transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }} className="hidden shrink-0 overflow-hidden border-r border-black/10 md:block">
+        <SidebarContent user={user} expanded={expanded} onToggle={() => setExpanded((value) => !value)} />
       </motion.aside>
     </>
   );

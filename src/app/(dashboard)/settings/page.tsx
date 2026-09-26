@@ -88,15 +88,16 @@ export default async function SettingsPage() {
   const monthlyActionCounts = Object.fromEntries(actionCountEntries);
 
   return (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column", gap: "0.625rem" }}>
-      <div style={{ flexShrink: 0 }}>
-        <h2 className="text-xl font-bold tracking-tight" style={{ color: "#2B2523" }}>
+    <div className="app-page">
+      <div className="app-page-header"><div>
+        <p className="app-page-kicker">Configuration CoY</p>
+        <h2>
           Paramètres
         </h2>
-        <p className="text-xs mt-0.5" style={{ color: "#6B7280" }}>
+        <p className="app-page-description">
           Gérez les informations de votre boutique et les préférences de détection CoY.
         </p>
-      </div>
+      </div></div>
 
       <SettingsTabs
         name={tenant.name}

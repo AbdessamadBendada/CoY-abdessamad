@@ -46,7 +46,7 @@ export async function testGorgias(
 }
 
 // ─── SHOPIFY ──────────────────────────────────────────────────────────────────
-// GET https://{shop_domain}/admin/api/2024-01/shop.json
+// GET https://{shop_domain}/admin/api/2026-01/shop.json
 // Auth : X-Shopify-Access-Token header
 export async function testShopify(
   shopDomain: string,
@@ -57,7 +57,7 @@ export async function testShopify(
 
   try {
     const res = await withTimeout(
-      fetch(`https://${domain}/admin/api/2024-01/shop.json`, {
+      fetch(`https://${domain}/admin/api/2026-01/shop.json`, {
         headers: { "X-Shopify-Access-Token": accessToken },
         cache: "no-store",
       })

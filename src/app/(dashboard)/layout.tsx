@@ -26,21 +26,18 @@ export default async function DashboardLayout({
   };
 
   return (
-    <div className="flex h-dvh overflow-hidden" style={{ background: "#F8F7F4" }}>
+    <div className="app-shell flex h-dvh overflow-hidden">
       <DashboardSidebar user={sidebarUser} />
 
       <div className="flex-1 flex flex-col min-w-0">
         {!hasDpa && <DpaPendingBanner />}
 
         {/* Barre supérieure mobile */}
-        <div
-          className="h-12 flex items-center px-4 md:hidden"
-          style={{ borderBottom: "1px solid rgba(0,0,0,0.06)", background: "#fff" }}
-        >
-          <span className="ml-10 font-semibold text-sm" style={{ color: "#2B2523" }}>CoY</span>
+        <div className="mobile-app-bar h-14 items-center px-4 md:hidden">
+          <span className="ml-11 text-sm font-semibold">CoY · Intelligence client</span>
         </div>
 
-        <main className="dashboard-content flex-1 p-5 overflow-auto">
+        <main className="dashboard-content flex-1 overflow-auto">
           <ScrollReveal />
           {children}
         </main>

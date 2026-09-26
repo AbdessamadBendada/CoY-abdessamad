@@ -60,14 +60,15 @@ export default async function ActionsPage({
   const channelFilter = parseChannel(rawChannel);
 
   return (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column", gap: "0.625rem" }}>
+    <div className="app-page">
       {/* En-tête — statique, rendu immédiat */}
-      <div style={{ flexShrink: 0 }}>
-        <h2 className="text-xl font-bold tracking-tight" style={{ color: "#2B2523" }}>Actions en cours</h2>
-        <p className="text-xs mt-0.5" style={{ color: "#6B7280" }}>
+      <div className="app-page-header"><div>
+        <p className="app-page-kicker">Activation</p>
+        <h2>Actions en cours</h2>
+        <p className="app-page-description">
           Emails et SMS de récupération actifs — suivi des conversions et du CA récupéré en temps réel.
         </p>
-      </div>
+      </div></div>
 
       {/* KPIs + tableau — streaming, prend le reste de la hauteur */}
       <Suspense fallback={<ContentSkeleton />}>

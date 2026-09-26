@@ -69,7 +69,7 @@ export default function NotFound() {
             </p>
 
             <Link
-              href="/help"
+              href="/"
               style={{
                 display: "inline-block",
                 background: "#D97757",

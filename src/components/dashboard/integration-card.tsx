@@ -103,7 +103,7 @@ const INTEGRATION_META: Record<
   },
   PRESTASHOP: {
     label: "PrestaShop",
-    description: "Plateforme e-commerce — synchronisation des commandes et messages clients",
+    description: "Plateforme e-commerce — synchronisation planifiée des commandes et clients",
     icon: Store,
     timeEstimate: "30–40 min",
     authType: "Webservice API",
@@ -271,13 +271,10 @@ function ShopifyOAuthForm({ onCancel }: { onCancel: () => void }) {
 function PrestaShopForm({ onCancel }: { onCancel: () => void }) {
   return (
     <div className="space-y-3 pt-2">
-      <a
-        href="/downloads/winbackagent.zip"
-        download
-        className="text-xs text-primary underline underline-offset-2 block"
-      >
-        Télécharger le module CoY (PrestaShop)
-      </a>
+      <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-950">
+        La connexion fonctionne par lecture sécurisée du Webservice PrestaShop.
+        Aucun module à télécharger n’est nécessaire pour cette version.
+      </div>
       <div className="space-y-1.5">
         <Label htmlFor="ps-domain">
           URL de votre boutique <span className="text-destructive">*</span>
@@ -656,31 +653,10 @@ export function IntegrationCard({
             )}
             {type === "PRESTASHOP" && existingIntegration && (
               <div className="space-y-2">
-                <a
-                  href="/downloads/winbackagent.zip"
-                  download
-                  className="text-xs text-primary underline underline-offset-2 block"
-                >
-                  Télécharger le module CoY (PrestaShop)
-                </a>
-
-                {/* URL webhook */}
-                <div>
-                  <p className="text-xs text-muted-foreground mb-0.5">URL webhook :</p>
-                  <div className="flex items-center gap-1">
-                    <code className="flex-1 text-[0.65rem] bg-muted px-2 py-1 rounded break-all select-all">
-                      {`${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/webhooks/prestashop?integrationId=${existingIntegration.id}`}
-                    </code>
-                    <button
-                      type="button"
-                      onClick={() => copyToClipboard(`${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/webhooks/prestashop?integrationId=${existingIntegration.id}`, "webhook")}
-                      className="shrink-0 p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                      aria-label="Copier l'URL webhook"
-                    >
-                      {copiedField === "webhook" ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
-                    </button>
-                  </div>
-                </div>
+                <p className="rounded-lg bg-muted px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+                  Synchronisation automatique toutes les 30 minutes via le
+                  Webservice PrestaShop.
+                </p>
 
                 {/* Integration ID */}
                 <div>
