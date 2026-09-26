@@ -8,6 +8,7 @@ import {
   validateShopifyPrivacyHmac,
 } from "@/features/integrations/connection/providers/shopify-privacy";
 import { createPrivacyExport } from "@/features/privacy/export";
+import { getAppUrl } from "@/shared/utils/get-app-url";
 
 export async function POST(request: NextRequest) {
   const rawBody = await request.text();
@@ -75,7 +76,7 @@ export async function POST(request: NextRequest) {
       html: `<p>Une demande Shopify de consultation des données a été reçue et journalisée.</p>
         <p>Boutique : <strong>${escapeHtml(payload.shop_domain)}</strong><br>
         Correspondance CoY : <strong>${customer ? "oui" : "aucune donnée trouvée"}</strong></p>
-        <p>${exportRecord ? "Un export sécurisé a été préparé. Connectez-vous à CoY avec un compte OWNER/ADMIN pour le télécharger." : "Aucune donnée correspondante n'a été trouvée."}</p>`,
+        <p>${exportRecord ? `Un <a href="${escapeHtml(`${getAppUrl()}/api/privacy/exports/${exportRecord.id}`)}">export sécurisé</a> a été préparé. La connexion CoY OWNER/ADMIN est obligatoire.` : "Aucune donnée correspondante n'a été trouvée."}</p>`,
     });
   }
 
